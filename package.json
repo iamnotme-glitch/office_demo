@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "all": "npm install && npm run build && npm start"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
