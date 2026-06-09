@@ -2,7 +2,8 @@ import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 
-const dataDir = path.join(process.cwd(), 'data');
+const isServerless = process.env.VERCEL === '1';
+const dataDir = process.env.SQLJS_DB_DIR || (isServerless ? path.join('/tmp', 'office-invoice-app-data') : path.join(process.cwd(), 'data'));
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
