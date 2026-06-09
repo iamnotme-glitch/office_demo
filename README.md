@@ -57,7 +57,7 @@ npm run dev
 Then open:
 
 ```text
-http://localhost:3000
+http://localhost:8989
 ```
 
 ### Production Build
