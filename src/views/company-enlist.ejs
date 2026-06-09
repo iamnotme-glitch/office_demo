@@ -1,0 +1,86 @@
+<%- include('header', { pageTitle: 'Register Partner', currentPage: 'new-company' }) %>
+
+<div class="page-title">REGISTER ENTITY</div>
+<div class="page-subtitle">Partner Node Enrollment — Secure Registry Entry</div>
+
+<div style="max-width: 900px; margin: 0 auto; margin-bottom: 100px;">
+  <form action="/companies" method="POST">
+    
+    <!-- 01 Identification Matrix -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">01</div>
+        <div>
+          <div class="section-title" style="font-size: 1.6rem;">IDENTITY PARAMETERS</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">Legal Registry & Classification Mapping</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 40px;">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label style="color: var(--accent);">Legal Entity Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. Acme Corporation Ltd." required>
+          </div>
+          <div class="form-group">
+            <label>Short/Display Name</label>
+            <input type="text" name="company" class="form-input" placeholder="e.g. ACME-TRADE">
+          </div>
+          <div class="form-group">
+            <label>Classification Matrix</label>
+            <select name="entityType" class="form-input" required>
+              <option value="company">Corporate Node</option>
+              <option value="cf_agent">C&F Agent Vector</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 Compliance & Contact -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">02</div>
+        <div>
+          <div class="section-title" style="font-size: 1.6rem;">COMPLIANCE & CONTACT</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">localization coordinates & communication nodes</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 40px;">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label style="color: var(--accent);">Registered office address</label>
+            <textarea name="address" class="form-input" rows="4" placeholder="Full legal localization coordinates..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Primary Phone</label>
+            <input type="tel" name="phone" class="form-input" placeholder="+880..." required>
+          </div>
+          <div class="form-group">
+            <label>Official Email</label>
+            <input type="email" name="email" class="form-input" placeholder="node@enterprise.com">
+          </div>
+          <div class="form-group">
+            <label>Trade License ID</label>
+            <input type="text" name="tradeLicenseNo" class="form-input" placeholder="TL-XXXXXX" required>
+          </div>
+          <div class="form-group">
+            <label>VAT Matrix (BIN)</label>
+            <input type="text" name="binNo" class="form-input" placeholder="XXXXXX-XXXX" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="glass-panel" style="display: flex; gap: 24px; padding: 40px; border-top: 1px solid var(--border);">
+      <button type="submit" class="btn btn-primary" style="flex: 1; padding: 22px; font-size: 1.1rem; border-radius: 18px;">
+        <i class="fa-solid fa-fingerprint"></i> AUTHORIZE ENROLLMENT
+      </button>
+      <a href="/companies" class="btn btn-ghost" style="padding: 22px 48px; border-radius: 18px; font-weight: 900;">ABORT</a>
+    </div>
+  </form>
+</div>
+
+<%- include('footer') %>

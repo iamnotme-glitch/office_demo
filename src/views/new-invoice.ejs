@@ -1,0 +1,765 @@
+<%- include('header', { pageTitle: editing ? 'Edit Invoice' : 'Create Invoice', currentPage: 'new-invoice' }) %>
+
+<div class="page-title"><%= editing ? 'EDIT INVOICE' : 'CREATE INVOICE' %></div>
+<div class="page-subtitle"><%= editing ? 'Update the existing billing document details.' : 'New logistics billing document — Industrial Precision' %></div>
+
+<div style="max-width: 1200px; margin: 0 auto; margin-bottom: 120px; display:flex; flex-direction:column; gap:24px;">
+  <div style="display:flex;flex-direction:column;gap:24px;">
+    <form action="<%= editing ? '/invoices/' + (invoice?.id) : '/invoices' %>" method="POST" id="invoiceForm" style="display:flex;flex-direction:column;gap:24px;">
+
+    <!-- 01 GENERAL INFORMATION -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">01</div>
+        <div>
+          <div class="section-title">GENERAL INFORMATION</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">Core invoice identifiers and billing parties</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 40px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date of Issue</label>
+            <input type="date" name="issue_date" value="<%= invoice?.issue_date || new Date().toISOString().slice(0, 10) %>" required>
+          </div>
+          <div style="display:grid;gap:24px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:flex-end;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label>Billing Entity (Sender)</label>
+                  <select name="sender_id" required>
+                    <option value="" disabled <%= !invoice ? 'selected' : '' %>>Select Sender</option>
+                    <% entities.forEach(entity => { %>
+                      <option value="<%= entity.id %>" <%= invoice?.sender_id === entity.id ? 'selected' : '' %>><%= entity.name %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label>Sender Depot Name</label>
+                  <input type="text" id="sender_depot" name="sender_depot" placeholder="Enter depot name" disabled>
+                </div>
+              </div>
+              <button type="button" class="btn btn-ghost toggle-depot" data-target="sender_depot" aria-pressed="false" style="height:44px;min-width:44px;padding:0 18px;">
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:flex-end;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label>Client / Recipient</label>
+                  <select name="receiver_id" id="receiver_id_select" required>
+                    <option value="" disabled <%= !invoice ? 'selected' : '' %>>Select Receiver</option>
+                    <% entities.forEach(entity => { %>
+                      <option value="<%= entity.id %>" data-short-name="<%= entity.company || entity.name.slice(0, 4).toUpperCase() %>" data-folders='<%- JSON.stringify(entity.folders || []) %>' <%= (invoice?.receiver_id === entity.id || String(entity.id) === String(preselectedReceiverId)) ? 'selected' : '' %>><%= entity.name %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label>Receiver Depot Name</label>
+                  <input type="text" id="receiver_depot" name="receiver_depot" placeholder="Enter depot name" disabled>
+                </div>
+              </div>
+              <button type="button" class="btn btn-ghost toggle-depot" data-target="receiver_depot" aria-pressed="false" style="height:44px;min-width:44px;padding:0 18px;">
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 LOGISTICS & TRANSPORT -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">02</div>
+        <div>
+          <div class="section-title">LOGISTICS & TRANSPORT</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">Route, reference numbers, and shipment details</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 40px;">
+        <div class="form-grid">
+            <div class="form-group">
+            <label>Invoice UUID</label>
+            <input type="text" id="invoice_uuid" name="invoice_uuid" readonly style="background: rgba(255,255,255,0.06); cursor: not-allowed;" placeholder="Auto-generated" value="<%= invoice?.invoice_uuid || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Category / Folder</label>
+            <select name="folder_id" id="folder_id_select">
+              <option value="">Default (No Category)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Invoice Reference #</label>
+            <input type="text" name="invoice_number" id="invoice_number_input" placeholder="e.g. ACME-LOG-0526-001 (Auto if empty)" value="<%= invoice?.invoice_number || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Challan Number</label>
+            <input type="text" name="challan_no" placeholder="e.g. CH-9902" value="<%= invoice?.challan_no || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Origin</label>
+            <input type="text" name="particulars_source" placeholder="e.g. Chittagong Port" value="<%= invoice?.particulars_source || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Destination</label>
+            <input type="text" name="particulars_destination" placeholder="e.g. Dhaka Warehouse" value="<%= invoice?.particulars_destination || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Good Volume</label>
+            <input type="text" name="good_volume" placeholder="e.g. 12.5 CBM" value="<%= invoice?.good_volume || '' %>">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 TRANSPORTATION -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">03</div>
+        <div>
+          <div class="section-title">TRANSPORTATION</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">Vehicle registration, type, and size</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 40px;">
+        <div id="transport-rows-container" style="display:grid;gap:16px;margin-bottom:24px"></div>
+        <button type="button" class="btn btn-primary" id="add-transport-row" style="padding: 12px 24px; font-size: 13px; border-radius: 12px;">
+          <i class="fa-solid fa-plus-circle"></i> ADD VEHICLE
+        </button>
+      </div>
+    </div>
+
+    <!-- 04 BILLING & FINANCIALS -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="section-num">04</div>
+        <div>
+          <div class="section-title">BILLING & FINANCIALS</div>
+          <div class="page-subtitle" style="font-size: 10px; margin-bottom: 0;">Rates, charges, and additional items</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 48px;">
+        <div class="form-grid" style="margin-bottom:48px">
+          <div class="form-group">
+            <label>Total Vehicles (auto)</label>
+            <input type="number" id="vehicle_count" name="vehicle_count" value="<%= invoice?.vehicle_count ?? 0 %>" readonly onwheel="this.blur()" style="background:rgba(255,255,255,0.03); color: var(--accent) !important; font-weight: 900; font-size: 20px;">
+          </div>
+          <div class="form-group">
+            <label>Company Invoice #</label>
+            <input type="text" name="company_invoice_no" placeholder="e.g. CI-2026-07" value="<%= invoice?.company_invoice_no || '' %>">
+          </div>
+        </div>
+
+        <fieldset style="background: rgba(255,255,255,0.01); border-radius: 16px;">
+          <legend style="background: transparent;">TRANSPORTATION RATES <button type="button" class="btn btn-ghost" id="add-rate-btn" style="margin-left:16px; font-size: 11px; padding: 8px 16px;">+ Add Rate</button></legend>
+          <div id="vehicle-rates-container" style="margin-top:24px;display:grid;gap:16px"></div>
+        </fieldset>
+
+        <fieldset style="background: rgba(255,255,255,0.01); border-radius: 16px;">
+          <legend style="background: transparent;">DEMURRAGE / DETENTION CHARGES <button type="button" class="btn btn-ghost" id="add-demurrage-btn" style="margin-left:16px; font-size: 11px; padding: 8px 16px;">+ Add Entry</button></legend>
+          <div id="demurrage-container" style="margin-top:24px;display:grid;gap:16px"></div>
+        </fieldset>
+
+        <fieldset style="background: rgba(255,255,255,0.01); border-radius: 16px; margin-bottom: 0;">
+          <legend style="background: transparent;">ADDITIONAL SERVICE ITEMS <button type="button" class="btn btn-ghost" id="add-line-item" style="margin-left:16px; font-size: 11px; padding: 8px 16px;">+ Add Item</button></legend>
+          <div id="line-items-container" style="margin-top:24px;display:grid;gap:16px"></div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Administrative Notes -->
+    <div class="form-section">
+      <div class="glass-panel" style="padding: 40px;">
+        <div class="form-group">
+          <label>Administrative Notes</label>
+          <textarea name="notes" rows="6" placeholder="Terms, conditions, or internal notes..."><%= invoice?.notes || '' %></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="glass-panel" style="display:flex;gap:24px;margin-top:48px;padding:48px;border-top:2px solid var(--border-active)">
+      <button type="submit" class="btn btn-primary" style="flex:1; padding:24px; font-size: 1.2rem; border-radius: 18px; box-shadow: 0 15px 40px var(--accent-glow);">
+        <i class="fa-solid fa-check-double"></i> <%= editing ? 'UPDATE INVOICE' : 'CREATE INVOICE' %>
+      </button>
+      <a href="/" class="btn btn-ghost" style="padding:24px 60px; border-radius: 18px; font-weight: 900; background: rgba(255,255,255,0.02);">CANCEL</a>
+    </div>
+
+  </form>
+
+  <section style="width:100%;padding:32px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:24px;">
+    <div style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size: 1rem; font-weight: 900; letter-spacing: 0.03em; margin-bottom: 8px;">Invoice Summary</div>
+        <div style="font-size: 0.85rem; color: var(--ink-muted);">Vehicle list, totals, and charge overview</div>
+      </div>
+      <div style="display:grid;gap:10px;min-width:220px;">
+        <div style="font-weight:700;">Total Cars: <span id="summary-total-cars">0</span></div>
+        <div>Carrying Charge: <span id="summary-carrying-charge">৳ 0.00</span></div>
+        <div>Demurrage: <span id="summary-demurrage-charge">৳ 0.00</span></div>
+        <div style="font-weight:900;">Total Amount: <span id="summary-total-amount">৳ 0.00</span></div>
+      </div>
+    </div>
+    <div style="max-height:260px;overflow-y:auto;padding-right:6px;">
+      <div id="invoice-summary-list" style="display:grid;gap:10px;"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const transportContainer = document.getElementById('transport-rows-container');
+    const addTransportBtn = document.getElementById('add-transport-row');
+    const vehicleCountInput = document.getElementById('vehicle_count');
+    const ratesContainer = document.getElementById('vehicle-rates-container');
+    const addRateBtn = document.getElementById('add-rate-btn');
+    const lineItemsContainer = document.getElementById('line-items-container');
+    const addLineItemBtn = document.getElementById('add-line-item');
+    const demurrageContainer = document.getElementById('demurrage-container');
+    const addDemurrageBtn = document.getElementById('add-demurrage-btn');
+    const summaryList = document.getElementById('invoice-summary-list');
+    const summaryTotalCars = document.getElementById('summary-total-cars');
+    const summaryCarryingCharge = document.getElementById('summary-carrying-charge');
+    const summaryDemurrageCharge = document.getElementById('summary-demurrage-charge');
+    const summaryTotalAmount = document.getElementById('summary-total-amount');
+    const invoiceUuidInput = document.getElementById('invoice_uuid');
+    const initialInvoice = <%- JSON.stringify(invoice || null) %>;
+
+    let transportRowKey = 0;
+    const knownRegistrationPrefixes = [
+      'Dhaka Metro',
+      'Chatta Metro',
+      'Raj Metro',
+      'Khulna Metro',
+      'Sylhet Metro',
+      'Barishal Metro',
+      'Rangpur Metro',
+      'Gazipur Metro'
+    ];
+
+    const parseRegistrationString = (registration) => {
+      const value = String(registration || '').trim();
+      let prefix = '';
+      let remaining = value;
+      
+      for (const p of knownRegistrationPrefixes) {
+        if (value.startsWith(p)) {
+          prefix = p;
+          remaining = value.slice(p.length).trim();
+          break;
+        }
+      }
+
+      const parts = remaining.split(' ');
+      let phonetic = '';
+      let regNo = remaining;
+
+      if (parts.length > 1) {
+        const knownPhonetics = ['Ta', 'Da', 'Na'];
+        if (knownPhonetics.includes(parts[0])) {
+          phonetic = parts[0];
+          regNo = parts.slice(1).join(' ');
+        }
+      }
+
+      return { prefix, phonetic, registration: regNo };
+    };
+
+    const generateUuid = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
+    const ensureUuid = () => {
+      if (invoiceUuidInput && !invoiceUuidInput.value.trim()) {
+        invoiceUuidInput.value = generateUuid();
+      }
+    };
+
+    ensureUuid();
+
+    const initDepotToggle = () => {
+      document.querySelectorAll('.toggle-depot').forEach(button => {
+        const targetId = button.dataset.target;
+        const input = document.getElementById(targetId);
+        if (!input) return;
+
+        const updateButton = () => {
+          const enabled = !input.disabled;
+          button.setAttribute('aria-pressed', String(enabled));
+          button.innerHTML = enabled ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
+          button.style.background = enabled ? 'rgba(16, 185, 129, 0.12)' : 'transparent';
+          button.style.borderColor = enabled ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255,255,255,0.08)';
+          button.style.color = enabled ? 'var(--success)' : 'var(--ink)';
+        };
+
+        button.addEventListener('click', () => {
+          input.disabled = !input.disabled;
+          if (input.disabled) input.value = '';
+          updateButton();
+        });
+
+        updateButton();
+      });
+    };
+
+    const vehicleSizes = {
+      'Covered Van': ['10 Feet', '12 Feet', '14 Feet', '16 Feet', '18 Feet', '20 Feet', '23 Feet'],
+      'Container': ['20 Feet', '40 Feet'],
+    };
+
+    const getTotalVehicleCount = () => Number(vehicleCountInput.value) || 0;
+
+    const formatCurrency = (amount) => `৳ ${Number(amount || 0).toFixed(2)}`;
+
+    const getCarryingChargeTotal = () => {
+      return Array.from(ratesContainer.querySelectorAll('.dynamic-row')).reduce((sum, row) => {
+        const rate = Number((row.querySelector('input[name="vehicle_rate_per_vehicle"]') || {}).value || 0);
+        const units = Number((row.querySelector('input[name="vehicle_rate_vehicles"]') || {}).value || 0);
+        return sum + rate * units;
+      }, 0);
+    };
+
+    const getDemurrageTotal = () => {
+      return Array.from(demurrageContainer.querySelectorAll('.dynamic-row')).reduce((sum, row) => {
+        const rate = Number((row.querySelector('input[name="demurrage_rate"]') || {}).value || 0);
+        const days = Number((row.querySelector('input[name="demurrage_days"]') || {}).value || 0);
+        const vehicles = Number((row.querySelector('input[name="demurrage_vehicles"]') || {}).value || 0);
+        return sum + rate * days * vehicles;
+      }, 0);
+    };
+
+    const getAdditionalItemsTotal = () => {
+      return Array.from(lineItemsContainer.querySelectorAll('.dynamic-row')).reduce((sum, row) => {
+        const quantity = Number((row.querySelector('input[name="quantity"]') || {}).value || 0);
+        const rate = Number((row.querySelector('input[name="rate"]') || {}).value || 0);
+        return sum + quantity * rate;
+      }, 0);
+    };
+
+    const updateSummary = () => {
+      const transportNames = Array.from(transportContainer.querySelectorAll('.dynamic-row')).map(row => {
+        const prefix = (row.querySelector('.v-reg-prefix') || {}).value || '';
+        const phonetic = (row.querySelector('.v-reg-phonetic') || {}).value || '';
+        const number = (row.querySelector('.v-reg-input') || {}).value || '';
+        return [prefix.trim(), phonetic.trim(), number.trim()].filter(Boolean).join('-');
+      }).filter(Boolean);
+
+      summaryList.innerHTML = transportNames.length
+        ? transportNames.map(name => `<div style="padding:12px 14px;background:rgba(255,255,255,0.05);border-radius:14px;font-size:0.95rem;">${name}</div>`).join('')
+        : '<div style="color: var(--ink-muted); font-size:0.95rem;">No vehicles registered yet.</div>';
+
+      const carryingTotal = getCarryingChargeTotal();
+      const demurrageTotal = getDemurrageTotal();
+      const itemTotal = getAdditionalItemsTotal();
+      summaryTotalCars.textContent = String(getTotalVehicleCount());
+      summaryCarryingCharge.textContent = formatCurrency(carryingTotal);
+      summaryDemurrageCharge.textContent = formatCurrency(demurrageTotal);
+      summaryTotalAmount.textContent = formatCurrency(carryingTotal + demurrageTotal + itemTotal);
+    };
+
+    const redistributeRateUnits = () => {
+      const totalVehicles = getTotalVehicleCount();
+      const qtyInputs = Array.from(ratesContainer.querySelectorAll('input[name="vehicle_rate_vehicles"]'));
+      if (qtyInputs.length === 0) return;
+
+      let quantities = qtyInputs.map(input => {
+        const value = Number(input.value) || 0;
+        input.max = totalVehicles;
+        return Math.max(0, Math.min(totalVehicles, value));
+      });
+
+      let sum = quantities.reduce((acc, qty) => acc + qty, 0);
+      if (sum > totalVehicles) {
+        let excess = sum - totalVehicles;
+        for (let i = quantities.length - 1; i >= 0 && excess > 0; i -= 1) {
+          const remove = Math.min(excess, quantities[i]);
+          quantities[i] -= remove;
+          excess -= remove;
+        }
+      }
+
+      if (totalVehicles === 0) {
+        quantities = quantities.map(() => 0);
+      }
+
+      quantities.forEach((qty, index) => {
+        qtyInputs[index].value = String(qty);
+      });
+    };
+
+    const syncRateVehicles = () => {
+      const totalVehicles = getTotalVehicleCount();
+      const qtyInputs = Array.from(ratesContainer.querySelectorAll('input[name="vehicle_rate_vehicles"]'));
+      if (qtyInputs.length === 0) return;
+
+      const quantities = qtyInputs.map(input => Math.max(0, Math.min(totalVehicles, Number(input.value) || 0)));
+      let sum = quantities.reduce((acc, qty) => acc + qty, 0);
+
+      if (totalVehicles === 0) {
+        quantities.fill(0);
+      } else if (sum > totalVehicles) {
+        let excess = sum - totalVehicles;
+        for (let i = quantities.length - 1; i >= 0 && excess > 0; i -= 1) {
+          const delta = Math.min(excess, quantities[i]);
+          quantities[i] -= delta;
+          excess -= delta;
+        }
+      }
+
+      quantities.forEach((qty, index) => {
+        qtyInputs[index].value = String(qty);
+      });
+    };
+
+    const updateVehicleCount = () => {
+      const count = Array.from(transportContainer.querySelectorAll('.v-reg-input'))
+        .filter(i => i.value.trim().length > 0).length;
+      vehicleCountInput.value = count;
+      Array.from(document.querySelectorAll('input[name="vehicle_rate_vehicles"], input[name="demurrage_vehicles"]')).forEach(input => {
+        input.max = count;
+        input.value = Math.max(0, Math.min(count, Number(input.value) || 0));
+      });
+      syncRateVehicles();
+      updateSummary();
+    };
+
+    const createTransportRow = (data = {}) => {
+      const prefixListId = `registration-prefix-list-${transportRowKey++}`;
+      const wrap = document.createElement('div');
+      wrap.className = 'dynamic-row';
+      wrap.style.cssText = 'display:flex;align-items:flex-end;flex-wrap:nowrap;overflow-x:auto;gap:16px;padding:24px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md);position:relative;';
+
+      wrap.innerHTML = `
+        <div class="form-group">
+          <label>Registration Prefix</label>
+          <div style="position:relative;">
+            <input list="${prefixListId}" name="vehicle_registration_prefixes" class="v-reg-prefix" placeholder="Choose or type prefix" style="padding-right: 34px;" value="${data.prefix || ''}" oninput="this.value = this.value.replace(/\s+/g, ' ').trim()">
+            <i class="fa-solid fa-chevron-down" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ink-muted);font-size:0.85rem;"></i>
+          </div>
+          <datalist id="${prefixListId}">
+            <option value="Dhaka Metro"></option>
+            <option value="Chatta Metro"></option>
+            <option value="Raj Metro"></option>
+            <option value="Khulna Metro"></option>
+            <option value="Sylhet Metro"></option>
+            <option value="Barishal Metro"></option>
+            <option value="Rangpur Metro"></option>
+            <option value="Gazipur Metro"></option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Phonetic Code</label>
+          <select name="vehicle_registration_phonetic" class="v-reg-phonetic">
+            <option value="" disabled selected>Select phonetic</option>
+            <option value="Ta">Ta</option>
+            <option value="Da">Da</option>
+            <option value="Na">Na</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Registration No.</label>
+          <input type="text" name="vehicle_registration_nos" class="v-reg-input" placeholder="e.g. 1234-ABC" value="${data.registration || ''}">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select name="vehicle_type" class="v-type">
+            <option value="" disabled selected>Select Type</option>
+            <option value="Covered Van">Covered Van</option>
+            <option value="Container">Container</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Size</label>
+          <select name="vehicle_size" class="v-size" disabled>
+            <option value="" disabled selected>Size</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:none" data-load-wrapper>
+          <label>Load Type</label>
+          <select name="vehicle_load_type" class="v-load-type" disabled>
+            <option value="" disabled selected>Select Load</option>
+            <option value="Lcl">LCL</option>
+            <option value="Fcl">FCL</option>
+            <option value="Hcl">HCL</option>
+          </select>
+          <input type="hidden" name="vehicle_load_type" class="v-load-type-hidden" value="">
+        </div>
+        <button type="button" class="btn btn-ghost remove-row" style="padding:10px;color:var(--error);border-color:rgba(244, 63, 94, 0.2); border-radius: 50%;">
+          <i class="fa-solid fa-circle-xmark"></i>
+        </button>
+      `;
+
+      const typeSelect = wrap.querySelector('.v-type');
+      const sizeSelect = wrap.querySelector('.v-size');
+      const loadWrapper = wrap.querySelector('[data-load-wrapper]');
+      const loadTypeSelect = wrap.querySelector('.v-load-type');
+      const loadTypeHidden = wrap.querySelector('.v-load-type-hidden');
+      const regInput = wrap.querySelector('.v-reg-input');
+      const prefixInput = wrap.querySelector('.v-reg-prefix');
+      const phoneticInput = wrap.querySelector('.v-reg-phonetic');
+
+      const refreshRowSummary = () => updateSummary();
+      prefixInput.addEventListener('input', refreshRowSummary);
+      phoneticInput.addEventListener('input', refreshRowSummary);
+      regInput.addEventListener('input', () => {
+        updateVehicleCount();
+        refreshRowSummary();
+      });
+
+      const updateVehicleType = () => {
+        const sizes = vehicleSizes[typeSelect.value] || [];
+        sizeSelect.innerHTML = '<option value="" disabled selected>Size</option>';
+        sizes.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = opt.textContent = s;
+          sizeSelect.appendChild(opt);
+        });
+        
+        const hasSizes = sizes.length > 0;
+        sizeSelect.disabled = !hasSizes;
+        sizeSelect.style.opacity = hasSizes ? '1' : '0.3';
+        sizeSelect.style.pointerEvents = hasSizes ? 'auto' : 'none';
+
+        if (typeSelect.value === 'Container') {
+          loadWrapper.style.display = 'block';
+          loadTypeSelect.disabled = false;
+          loadTypeHidden.disabled = true;
+        } else {
+          loadWrapper.style.display = 'none';
+          loadTypeSelect.disabled = true;
+          loadTypeHidden.disabled = false;
+          loadTypeHidden.value = '';
+          loadTypeSelect.value = '';
+          loadTypeSelect.value = '';
+          loadTypeHidden.disabled = false;
+          loadTypeHidden.value = '';
+        }
+      };
+
+      typeSelect.addEventListener('change', updateVehicleType);
+
+      if (data.vehicle_type) {
+        typeSelect.value = data.vehicle_type;
+        updateVehicleType();
+      }
+
+      if (data.vehicle_size) {
+        sizeSelect.value = data.vehicle_size;
+      }
+      if (data.load_type) {
+        loadTypeSelect.value = data.load_type;
+        loadWrapper.style.display = 'block';
+        loadTypeSelect.disabled = false;
+      }
+
+      if (data.phonetic) {
+        phoneticInput.value = data.phonetic;
+      }
+
+      wrap.querySelector('.remove-row').addEventListener('click', () => { 
+        wrap.style.transform = 'scale(0.95)';
+        wrap.style.opacity = '0';
+        setTimeout(() => { wrap.remove(); updateVehicleCount(); updateSummary(); }, 200);
+      });
+
+      transportContainer.appendChild(wrap);
+    };
+
+    const createRateRow = (data = {}) => {
+      const row = document.createElement('div');
+      row.className = 'dynamic-row';
+      row.style.cssText = 'display:flex;align-items:flex-end;flex-wrap:nowrap;overflow-x:auto;gap:16px;padding:24px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md)';
+
+      row.innerHTML = `
+        <div class="form-group" style="flex:0 0 180px; min-width:160px;">
+          <label>Rate / Vehicle</label>
+          <input type="number" name="vehicle_rate_per_vehicle" min="0" onwheel="this.blur()" placeholder="0.00" value="${data.rate_per_vehicle || ''}">
+        </div>
+        <div class="form-group" style="flex:0 0 140px; min-width:120px;">
+          <label>Vehicles</label>
+          <input type="number" name="vehicle_rate_vehicles" value="${data.vehicles ?? ''}" min="0" max="0" onwheel="this.blur()" oninput="this.value = Math.max(0, Math.min(Number(document.getElementById('vehicle_count').value || 0), Number(this.value) || 0))">
+        </div>
+        <button type="button" class="btn btn-ghost remove-row" style="flex:0 0 auto;padding:10px;color:var(--error);border-color:transparent;">
+          <i class="fa-solid fa-circle-minus"></i>
+        </button>
+      `;
+
+      const rateInputs = row.querySelectorAll('input[name="vehicle_rate_per_vehicle"], input[name="vehicle_rate_vehicles"]');
+      rateInputs.forEach(input => input.addEventListener('input', () => {
+        syncRateVehicles();
+        updateSummary();
+      }));
+
+      row.querySelector('.remove-row').addEventListener('click', () => {
+        row.remove();
+        updateVehicleCount();
+      });
+      ratesContainer.appendChild(row);
+      updateVehicleCount();
+    };
+
+    const createDemurrageRow = (data = {}) => {
+      const row = document.createElement('div');
+      row.className = 'dynamic-row';
+      row.style.cssText = 'display:flex;align-items:flex-end;flex-wrap:nowrap;overflow-x:auto;gap:16px;padding:24px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md)';
+
+      row.innerHTML = `
+        <div class="form-group" style="flex:1 0 240px; min-width:200px;">
+          <label>Daily Rate (৳)</label>
+          <input type="number" name="demurrage_rate" min="0" onwheel="this.blur()" placeholder="0.00" value="${data.rate || ''}">
+        </div>
+        <div class="form-group" style="flex:0 0 120px; min-width:120px;">
+          <label>Days</label>
+          <input type="number" name="demurrage_days" min="0" onwheel="this.blur()" placeholder="0" value="${data.days || ''}">
+        </div>
+        <div class="form-group" style="flex:0 0 120px; min-width:120px;">
+          <label>Vehicles</label>
+          <input type="number" name="demurrage_vehicles" min="0" max="0" onwheel="this.blur()" placeholder="0" value="${data.vehicles || ''}" oninput="this.value = Math.max(0, Math.min(Number(document.getElementById('vehicle_count').value || 0), Number(this.value) || 0))">
+        </div>
+        <button type="button" class="btn btn-ghost remove-row" style="flex:0 0 auto;padding:10px;color:var(--error);border-color:transparent;">
+          <i class="fa-solid fa-circle-minus"></i>
+        </button>
+      `;
+
+      const demurrageInputs = row.querySelectorAll('input[name="demurrage_rate"], input[name="demurrage_days"], input[name="demurrage_vehicles"]');
+      demurrageInputs.forEach(input => input.addEventListener('input', updateSummary));
+
+      row.querySelector('.remove-row').addEventListener('click', () => { row.remove(); updateVehicleCount(); updateSummary(); });
+      demurrageContainer.appendChild(row);
+      updateVehicleCount();
+      updateSummary();
+    };
+
+    const createLineItem = (data = {}) => {
+      const row = document.createElement('div');
+      row.className = 'dynamic-row';
+      row.style.cssText = 'display:flex;align-items:flex-end;flex-wrap:nowrap;overflow-x:auto;gap:16px;padding:20px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md)';
+
+      row.innerHTML = `
+        <div class="form-group" style="flex:1 0 320px; min-width:240px;"><label>Item Description</label><input type="text" name="description" placeholder="Description" value="${data.description || ''}"></div>
+        <div class="form-group" style="flex:0 0 120px; min-width:120px;"><label>Quantity</label><input type="number" name="quantity" min="0" onwheel="this.blur()" placeholder="Units" value="${data.quantity || ''}"></div>
+        <div class="form-group" style="flex:0 0 140px; min-width:120px;"><label>Rate (৳)</label><input type="number" name="rate" min="0" onwheel="this.blur()" placeholder="0.00" value="${data.rate || ''}"></div>
+        <button type="button" class="btn btn-ghost remove-row" style="flex:0 0 auto;padding:10px;color:var(--error);border-color:transparent;">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+
+      const lineInputs = row.querySelectorAll('input[name="quantity"], input[name="rate"]');
+      lineInputs.forEach(input => input.addEventListener('input', updateSummary));
+
+      row.querySelector('.remove-row').addEventListener('click', () => { row.remove(); updateSummary(); });
+      lineItemsContainer.appendChild(row);
+      updateSummary();
+    };
+
+    addTransportBtn.addEventListener('click', createTransportRow);
+    addRateBtn.addEventListener('click', createRateRow);
+    addLineItemBtn.addEventListener('click', createLineItem);
+    addDemurrageBtn.addEventListener('click', createDemurrageRow);
+    initDepotToggle();
+
+    const receiverSelect = document.getElementById('receiver_id_select');
+    const folderSelect = document.getElementById('folder_id_select');
+    const invoiceNumberInput = document.getElementById('invoice_number_input');
+
+    const updateInvoiceNumber = () => {
+      if (initialInvoice && initialInvoice.invoice_number) return; // Don't auto-change existing
+
+      const selectedReceiver = receiverSelect.options[receiverSelect.selectedIndex];
+      if (!selectedReceiver || !selectedReceiver.value) return;
+
+      const shortName = (selectedReceiver.getAttribute('data-short-name') || '').replace(/\s+/g, '-').toUpperCase();
+      const selectedFolder = folderSelect.options[folderSelect.selectedIndex];
+      const folderPart = (selectedFolder && selectedFolder.value) ? `-${selectedFolder.textContent.trim().toUpperCase().replace(/\s+/g, '-')}` : '';
+      
+      const now = new Date();
+      const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getFullYear()).slice(-2)}`;
+      
+      const currentVal = invoiceNumberInput.value;
+      // Only auto-update if it's empty or matches our prefix pattern
+      if (!currentVal || currentVal.startsWith(shortName)) {
+        invoiceNumberInput.value = `${shortName}${folderPart}-${monthYear}-`;
+      }
+    };
+
+    const updateFolders = () => {
+      const selectedOption = receiverSelect.options[receiverSelect.selectedIndex];
+      if (!selectedOption || !selectedOption.value) return;
+      const folders = JSON.parse(selectedOption.getAttribute('data-folders') || '[]');
+      
+      folderSelect.innerHTML = '<option value="">Default (No Category)</option>';
+      folders.forEach(folder => {
+        const opt = document.createElement('option');
+        opt.value = folder.id;
+        opt.textContent = folder.name;
+        if (initialInvoice?.folder_id === folder.id) opt.selected = true;
+        folderSelect.appendChild(opt);
+      });
+      updateInvoiceNumber();
+    };
+
+    receiverSelect.addEventListener('change', updateFolders);
+    folderSelect.addEventListener('change', updateInvoiceNumber);
+    if (receiverSelect.value) updateFolders();
+
+    // Initial Bootstrap
+    if (initialInvoice) {
+      const entries = initialInvoice.vehicle_entries || [];
+      if (entries.length) {
+        entries.forEach(entry => {
+        const parsed = parseRegistrationString(entry.registration);
+        createTransportRow({
+          prefix: parsed.prefix,
+          registration: parsed.registration,
+          vehicle_type: entry.vehicle_type,
+          vehicle_size: entry.vehicle_size,
+          load_type: entry.load_type,
+        });
+      });
+      } else {
+        createTransportRow();
+      }
+
+      const rateRows = initialInvoice.vehicle_rates || [];
+      if (rateRows.length) {
+        rateRows.forEach(rate => createRateRow(rate));
+      } else {
+        createRateRow();
+      }
+
+      const demurrageRows = initialInvoice.demurrage_entries || [];
+      if (demurrageRows.length) {
+        demurrageRows.forEach(item => createDemurrageRow(item));
+      } else {
+        createDemurrageRow();
+      }
+
+      const lineItems = initialInvoice.items || [];
+      if (lineItems.length) {
+        lineItems.forEach(item => createLineItem(item));
+      } else {
+        createLineItem();
+      }
+    } else {
+      createTransportRow();
+      createRateRow();
+      createDemurrageRow();
+      createLineItem();
+    }
+
+    updateVehicleCount();
+    updateSummary();
+  });
+</script>
+
+<%- include('footer') %>

@@ -1,0 +1,137 @@
+<%- include('header', { pageTitle: 'Entity Profile', currentPage: 'companies' }) %>
+
+<div style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
+  <a href="/companies" class="btn btn-ghost" style="border-radius: 12px; font-weight: 800;">
+    <i class="fa-solid fa-arrow-left-long"></i>
+    DIRECTORY
+  </a>
+  <div style="display: flex; gap: 16px;">
+    <button onclick="document.getElementById('new-folder-modal').style.display='flex'" class="btn btn-secondary" style="border-radius: 12px; font-weight: 800;">
+      <i class="fa-solid fa-folder-plus"></i> NEW CATEGORY
+    </button>
+    <a href="/invoices/new?receiver_id=<%= company.id %>" class="btn btn-primary" style="border-radius: 12px; font-weight: 800;">
+      <i class="fa-solid fa-plus-circle"></i> NEW INVOICE
+    </a>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 340px 1fr; gap: 40px; align-items: start;">
+  <!-- Entity Info Sidebar -->
+  <div style="display: grid; gap: 32px;">
+    <div class="glass-panel" style="padding: 40px;">
+      <div style="width: 80px; height: 80px; background: var(--accent); color: white; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 24px; box-shadow: 0 10px 20px var(--accent-glow);">
+        <i class="fa-solid <%= company.entity_type === 'cf_agent' ? 'fa-user-tie' : 'fa-building' %>"></i>
+      </div>
+      <h1 style="font-size: 1.8rem; margin-bottom: 8px;"><%= company.name %></h1>
+      <p style="font-weight: 950; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-size: 0.75rem; margin-bottom: 24px;">
+        <%= company.entity_type === 'cf_agent' ? 'C&F AGENT' : 'CORPORATE ENTITY' %>
+      </p>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div style="font-size: 0.9rem; color: var(--ink-dim);">
+          <label style="display: block; font-size: 0.7rem; color: var(--ink-muted); margin-bottom: 4px;">ADDRESS</label>
+          <%= company.address %>
+        </div>
+        <div style="font-size: 0.9rem; color: var(--ink-dim);">
+          <label style="display: block; font-size: 0.7rem; color: var(--ink-muted); margin-bottom: 4px;">PHONE</label>
+          <%= company.phone %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Folders Navigation -->
+    <div class="glass-panel" style="padding: 32px;">
+      <h4 style="font-size: 0.8rem; font-weight: 950; text-transform: uppercase; color: var(--ink-muted); letter-spacing: 0.2em; margin-bottom: 20px;">BILLING CATEGORIES</h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a href="?folder=all" class="nav-item <%= !currentFolder ? 'active' : '' %>" style="padding: 12px 16px; border-radius: 10px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+          <i class="fa-solid fa-layer-group"></i> All Invoices
+        </a>
+        <% (company.folders || []).forEach(folder => { %>
+          <a href="?folder=<%= folder.id %>" class="nav-item <%= currentFolder === folder.id ? 'active' : '' %>" style="padding: 12px 16px; border-radius: 10px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+            <i class="fa-solid fa-folder"></i> <%= folder.name %>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoices Table Area -->
+  <div class="glass-panel" style="padding: 0; overflow: hidden;">
+    <div class="panel-header" style="padding: 32px 40px; border-bottom: 1px solid var(--border);">
+      <h3 class="panel-title">LEDGER: <%= (company.folders || []).find(f => f.id === currentFolder)?.name || 'ALL ACTIVITY' %></h3>
+    </div>
+    
+    <div class="panel-body">
+      <% 
+        const filteredInvoices = currentFolder && currentFolder !== 'all' 
+          ? invoices.filter(inv => inv.folder_id === currentFolder)
+          : invoices;
+      %>
+      
+      <% if (filteredInvoices.length === 0) { %>
+        <div style="padding: 100px 40px; text-align: center;">
+          <i class="fa-solid fa-receipt" style="font-size: 4rem; color: var(--border); margin-bottom: 24px; display: block; opacity: 0.3;"></i>
+          <h3 style="color: var(--ink-muted); font-weight: 900; letter-spacing: 0.05em;">NO RECORDS FOUND</h3>
+          <p style="color: var(--ink-muted); margin-top: 12px;">No billing synchronized for this segment.</p>
+        </div>
+      <% } else { %>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="padding-left: 40px;">PROTOCOL ID</th>
+              <th>SYNC DATE</th>
+              <th>STATE</th>
+              <th style="text-align:right; padding-right: 40px;">VALUATION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% filteredInvoices.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach((invoice) => { %>
+              <tr class="row-link" onclick="location.href='/invoices/<%= invoice.invoice_uuid %>'">
+                <td style="padding-left: 40px; font-family: var(--font-mono); font-weight: 900; color: var(--accent);">
+                  <%= invoice.invoice_number %>
+                </td>
+                <td><span class="inv-meta"><%= new Date(invoice.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() %></span></td>
+                <td>
+                  <span class="badge badge-<%= invoice.status.toLowerCase() %>">
+                    <%= invoice.status %>
+                  </span>
+                </td>
+                <td style="text-align:right; padding-right: 40px; font-family:var(--font-mono); font-weight:950; color: var(--ink)">
+                  <%= FinanceService.formatCurrency(invoice.total_amount) %>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- New Folder Modal -->
+<div id="new-folder-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 24px;">
+  <div class="glass-panel" style="width: 100%; max-width: 480px; padding: 48px;">
+    <h2 style="margin-bottom: 8px;">NEW CATEGORY</h2>
+    <p style="color: var(--ink-muted); margin-bottom: 32px; font-size: 0.9rem;">Organize billing into logical segments.</p>
+    
+    <form action="/companies/<%= company.uuid_hash %>/folders" method="POST">
+      <div class="form-group">
+        <label>Category Name</label>
+        <input type="text" name="name" placeholder="e.g. Logistics, Warehouse, Import..." required autofocus>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 40px;">
+        <button type="submit" class="btn btn-primary">CREATE</button>
+        <button type="button" onclick="document.getElementById('new-folder-modal').style.display='none'" class="btn btn-ghost">CANCEL</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Simple logic to handle folder filtering without page reload if desired, 
+  // but for now we rely on query params.
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentFolder = urlParams.get('folder');
+</script>
+
+<%- include('footer') %>

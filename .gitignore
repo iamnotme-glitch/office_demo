@@ -1,0 +1,56 @@
+# Node.js
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# SQLite database file
+/data/invoice.db
+
+# Environment files
+.env
+.env.*
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# IDEs and editors
+.vscode/
+.DS_Store
+.idea/
+
+# OS generated files
+Thumbs.db
+
+# npm package locks on alternate package managers
+package-lock.json
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+*.log

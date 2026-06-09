@@ -1,0 +1,133 @@
+<%- include('../header') %>
+
+<div class="page-title">
+  <h3 class="badge" style="background: var(--accent-glow); color: var(--accent); border: none; padding: 12px 24px; font-size: 13px; margin-bottom: 24px;">
+    <i class="fa-solid fa-crown" style="margin-right: 10px;"></i> Administration Console
+  </h3>
+  <h1>System Overview</h1>
+</div>
+<p class="page-subtitle">Central management for users, entities, and system performance.</p>
+
+<div class="stats-grid">
+  <div class="glass-panel stat-card">
+    <span class="stat-label">Total Users</span>
+    <span class="stat-value"><%= stats.totalUsers %></span>
+    <div class="stat-delta" style="color: var(--success);">
+      <i class="fa-solid fa-users"></i> Active Accounts
+    </div>
+  </div>
+  <div class="glass-panel stat-card">
+    <span class="stat-label">Operational Volume</span>
+    <span class="stat-value"><%= stats.totalInvoices %></span>
+    <div class="stat-delta" style="color: var(--accent);">
+      <i class="fa-solid fa-file-invoice"></i> Total Invoices
+    </div>
+  </div>
+  <div class="glass-panel stat-card">
+    <span class="stat-label">System Revenue</span>
+    <span class="stat-value"><%= stats.totalRevenue.toLocaleString() %> BDT</span>
+    <div class="stat-delta" style="color: var(--warning);">
+      <i class="fa-solid fa-money-bill-trend-up"></i> Lifetime Value
+    </div>
+  </div>
+</div>
+
+<div class="glass-panel" style="margin-top: 48px;">
+  <div class="panel-header">
+    <h3 class="panel-title">User Management</h3>
+    <div class="badge badge-pending">Enterprise Control</div>
+  </div>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Joined</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(user => { %>
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px;"><%= user.username.substring(0, 2).toUpperCase() %></div>
+              <span style="font-weight: 800;"><%= user.username %></span>
+            </div>
+          </td>
+          <td><%= user.email %></td>
+          <td>
+            <span class="badge <%= user.role === 'admin' ? 'badge-paid' : '' %>" style="font-size: 10px;">
+              <%= user.role.toUpperCase() %>
+            </span>
+          </td>
+          <td style="font-family: var(--font-mono); font-size: 13px;"><%= new Date(user.created_at).toLocaleDateString() %></td>
+          <td>
+            <div style="display: flex; gap: 10px;">
+              <button onclick="changeRole('<%= user.id %>', '<%= user.role === 'admin' ? 'user' : 'admin' %>')" class="btn btn-ghost" style="padding: 8px 12px; font-size: 11px;">
+                <i class="fa-solid fa-shuffle"></i> Toggle Role
+              </button>
+              <button onclick="deleteUser('<%= user.id %>')" class="btn btn-ghost" style="padding: 8px 12px; font-size: 11px; color: var(--error); border-color: rgba(244, 63, 94, 0.2);">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div id="custom-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div id="modal-title" class="modal-title">Confirm Action</div>
+    <div id="modal-message" class="modal-message">Are you sure you want to proceed?</div>
+    <div class="modal-actions">
+      <button onclick="closeModal()" class="btn btn-ghost">Cancel</button>
+      <button id="modal-confirm-btn" class="btn btn-primary">Proceed</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('custom-modal');
+  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+  function openModal(title, message, onConfirm) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-message').innerText = message;
+    modalConfirmBtn.onclick = () => {
+      onConfirm();
+      closeModal();
+    };
+    modal.classList.add('active');
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+  }
+
+  async function changeRole(userId, newRole) {
+    openModal('Change Role', `Are you sure you want to change this user's role to ${newRole}?`, async () => {
+      const response = await fetch(`/admin/users/${userId}/role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (response.ok) location.reload();
+    });
+  }
+
+  async function deleteUser(userId) {
+    openModal('Delete User', 'Are you sure you want to delete this user? This action cannot be undone.', async () => {
+      const response = await fetch(`/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) location.reload();
+    });
+  }
+</script>
+
+<%- include('../footer') %>

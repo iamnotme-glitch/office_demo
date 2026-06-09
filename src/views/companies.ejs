@@ -1,0 +1,58 @@
+<%- include('header', { pageTitle: 'Managed Entities', currentPage: 'companies' }) %>
+
+<div class="page-title">ENTITY DIRECTORY</div>
+<div class="page-subtitle">Centralized Partner Network — Managed Nodes Registry</div>
+
+<div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+  <a href="/companies/new" class="btn btn-primary" style="border-radius: 12px; font-weight: 800;">
+    <i class="fa-solid fa-plus-circle"></i> REGISTER PARTNER
+  </a>
+</div>
+
+<% if (companies.length === 0) { %>
+  <div class="glass-panel" style="padding: 100px 40px; text-align: center;">
+    <i class="fa-solid fa-building-circle-exclamation" style="font-size: 4rem; color: var(--border); margin-bottom: 24px; display: block; opacity: 0.3;"></i>
+    <h3 style="color: var(--ink-muted); font-weight: 800; letter-spacing: 0.05em;">NO ENTITIES FOUND</h3>
+    <p style="color: var(--ink-muted); margin-top: 12px; font-weight: 600;">No managed entities localized in the current registry sector.</p>
+  </div>
+<% } else { %>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 32px;">
+    <% companies.forEach(company => { %>
+      <div class="glass-panel" style="display: flex; flex-direction: column; gap: 28px; padding: 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+            <i class="fa-solid <%= company.entity_type === 'cf_agent' ? 'fa-user-gear' : 'fa-building-shield' %>"></i>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--border);">
+            <div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent-glow);"></div>
+            <span style="font-size: 0.75rem; font-weight: 950; text-transform: uppercase; color: #fff; letter-spacing: 0.1em;">
+              <%= company.entity_type === 'cf_agent' ? 'C&F AGENT' : 'CORPORATE' %>
+            </span>
+          </div>
+        </div>
+        
+        <div>
+          <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.01em;"><%= company.name %></h3>
+          <p style="font-size: 0.85rem; color: var(--ink-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;"><%= company.company || 'PRIMARY ENTITY' %></p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 24px; border-top: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: 14px; font-size: 1rem; color: var(--ink-dim);">
+            <i class="fa-solid fa-location-dot" style="width: 20px; color: var(--accent); opacity: 0.8;"></i>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;"><%= company.address %></span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; font-size: 1rem; color: var(--ink-dim);">
+            <i class="fa-solid fa-phone" style="width: 20px; color: var(--accent); opacity: 0.8;"></i>
+            <span style="font-weight: 600;"><%= company.phone %></span>
+          </div>
+        </div>
+
+        <a href="/companies/<%= company.uuid_hash %>" class="btn btn-ghost" style="margin-top: 12px; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.1em; border-radius: 12px;">
+          ACCESS PROFILE
+        </a>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('footer') %>

@@ -1,0 +1,99 @@
+<%- include('header', { pageTitle: 'Operational Overview', currentPage: 'invoices' }) %>
+
+<div class="page-title">ANALYTICS HUB</div>
+<div class="page-subtitle">Real-time financial synchronization — <%= new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase() %></div>
+
+<!-- Enhanced Glass Stats Grid -->
+<div class="stats-grid">
+  <div class="glass-panel stat-card">
+    <div class="stat-label">Total Revenue</div>
+    <div class="stat-value">
+      <% 
+        const totalRev = invoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+      %>
+      <%= FinanceService.formatCurrency(totalRev) %>
+    </div>
+    <div class="stat-delta" style="color: var(--success); font-weight: 800;">
+      <i class="fa-solid fa-chart-line"></i> OPTIMIZED GROWTH
+    </div>
+  </div>
+  
+  <div class="glass-panel stat-card">
+    <div class="stat-label">Active Objects</div>
+    <div class="stat-value"><%= invoices.length %></div>
+    <div class="stat-delta" style="color: var(--ink-muted);">Total synchronized records</div>
+  </div>
+  
+  <div class="glass-panel stat-card">
+    <div class="stat-label">Pending Syncs</div>
+    <div class="stat-value">
+      <%= invoices.filter(i => i.status === 'Draft').length %>
+    </div>
+    <div class="stat-delta" style="color: var(--warning);">Awaiting finalization</div>
+  </div>
+</div>
+
+<!-- Ledger Panel -->
+<div class="glass-panel" style="padding: 0; overflow: hidden;">
+  <div class="panel-header">
+    <h3 class="panel-title">RECENT ACTIVITY LEDGER</h3>
+    <a href="/invoices/new" class="btn btn-primary" style="padding: 12px 24px; font-size: 13px;">
+      <i class="fa-solid fa-plus-circle"></i> NEW INVOICE
+    </a>
+  </div>
+
+  <div class="panel-body">
+    <% if (invoices.length === 0) { %>
+      <div style="padding: 120px 40px; text-align: center;">
+        <i class="fa-solid fa-satellite-dish" style="font-size: 5rem; color: var(--border); margin-bottom: 24px; display: block; opacity: 0.3;"></i>
+        <h3 style="color: var(--ink-muted); font-weight: 900; letter-spacing: 0.05em;">NETWORK VACUUM DETECTED</h3>
+        <p style="color: var(--ink-muted); font-size: 1.1rem; margin-top: 12px;">Start by <a href="/invoices/new" style="color: var(--accent); font-weight: 900; text-decoration: underline;">creating your first object</a>.</p>
+      </div>
+    <% } else { %>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="padding-left: 48px;">PROTOCOL ID</th>
+            <th>TARGET ENTITY</th>
+            <th>SYNC DATE</th>
+            <th>STATE</th>
+            <th style="text-align:right;">VALUATION</th>
+            <th style="text-align:right; padding-right: 48px;">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% invoices.forEach((invoice) => { %>
+            <tr class="row-link" onclick="if(!event.target.closest('.action-btn')) location.href='/invoices/<%= invoice.invoice_uuid %>'">
+              <td style="padding-left: 48px; font-family: var(--font-mono); font-weight: 900; color: var(--accent); font-size: 15px;">
+                <%= invoice.invoice_number %>
+              </td>
+              <td>
+                <div style="font-weight: 900; color: var(--ink); font-size: 17px;"><%= invoice.client_name %></div>
+                <% if (invoice.challan_no) { %>
+                  <div class="inv-meta" style="font-weight: 800; opacity: 0.7; font-size: 11px;">CHALLAN: <%= invoice.challan_no %></div>
+                <% } %>
+              </td>
+              <td><span class="inv-meta" style="font-weight: 800;"><%= new Date(invoice.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() %></span></td>
+              <td>
+                <span class="badge badge-<%= invoice.status.toLowerCase() %>">
+                  <%= invoice.status %>
+                </span>
+              </td>
+              <td style="text-align:right; font-family:var(--font-mono); font-size:18px; font-weight:950; color: var(--ink)">
+                <%= FinanceService.formatCurrency(invoice.total_amount) %>
+              </td>
+              <td style="text-align:right; padding-right: 48px;">
+                <button class="btn btn-ghost action-btn" onclick="if(confirm('Delete this invoice?')) { document.getElementById('delete-form-<%= invoice.invoice_uuid %>').submit(); }" style="padding: 8px; color: var(--error); border: none;">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <form id="delete-form-<%= invoice.invoice_uuid %>" action="/invoices/<%= invoice.invoice_uuid %>/delete" method="POST" style="display: none;"></form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+<%- include('footer') %>

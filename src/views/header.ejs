@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle + ' | FreightLedger' : 'FreightLedger' %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/theme.js" defer></script>
+</head>
+<body>
+
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">FL</div>
+        <div class="brand-text">
+          <span class="brand-name">FreightLedger</span>
+          <span class="brand-sub">Premium Logistics</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Operations Hub</div>
+        <a href="/" class="nav-item <%= currentPage === 'invoices' ? 'active' : '' %>">
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="/invoices/new" class="nav-item <%= currentPage === 'new-invoice' ? 'active' : '' %>">
+          <span class="nav-icon"><i class="fa-solid fa-circle-plus"></i></span>
+          <span>New Invoice</span>
+        </a>
+
+        <div class="nav-section-label">Management</div>
+        <a href="/companies" class="nav-item <%= currentPage === 'companies' ? 'active' : '' %>">
+          <span class="nav-icon"><i class="fa-solid fa-network-wired"></i></span>
+          <span>Entities</span>
+        </a>
+        <a href="/companies/new" class="nav-item <%= currentPage === 'new-company' ? 'active' : '' %>">
+          <span class="nav-icon"><i class="fa-solid fa-user-plus"></i></span>
+          <span>Add Partner</span>
+        </a>
+
+        <% if (user && user.role === 'admin') { %>
+          <div class="nav-section-label">Administration</div>
+          <a href="/admin" class="nav-item <%= currentPage === 'admin' ? 'active' : '' %>">
+            <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span>Admin Panel</span>
+          </a>
+        <% } %>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="status-dot"></div>
+          <span>Environment Live</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Wrapper -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+        <button id="sidebar-toggle" class="btn btn-ghost" style="padding: 8px; border-radius: 12px; border: none; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <span class="topbar-breadcrumb">OPERATIONS</span>
+        <span class="topbar-sep">/</span>
+        <span class="topbar-current"><%= typeof pageTitle !== 'undefined' ? pageTitle.toUpperCase() : 'DASHBOARD' %></span>
+      </div>
+
+        <div class="topbar-right">
+          <button id="theme-toggle" class="btn btn-ghost" style="padding: 8px; border-radius: 12px; border: none; font-size: 1.1rem;" title="Switch Mode">
+            <i class="fa-solid fa-circle-half-stroke"></i>
+          </button>
+          
+          <div class="user-profile-header">
+            <div class="user-info">
+              <div class="user-name"><%= user ? user.username : 'Guest' %></div>
+              <div class="user-role"><%= user ? user.role.toUpperCase() : 'USER' %></div>
+            </div>
+            <div class="topbar-avatar"><%= user ? user.username.substring(0, 2).toUpperCase() : '??' %></div>
+            <a href="/logout" class="logout-btn-header" title="Logout">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content">

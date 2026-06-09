@@ -1,0 +1,48 @@
+{
+  "clients": [
+    {
+      "id": 1,
+      "name": "Miscellaneous",
+      "company": "Miscellaneous Billing",
+      "address": "",
+      "tax_id": "",
+      "email": "",
+      "phone": "",
+      "created_at": "2026-05-17T10:24:19.584Z",
+      "uuid_hash": "04c56a"
+    },
+    {
+      "id": 2,
+      "name": "Acme Corporation",
+      "company": "Acme Trading Inc.",
+      "address": "456 Industrial Boulevard, Suite 200, New York, NY 10001",
+      "phone": "+1-212-555-0123",
+      "email": "info@acmecorp.com",
+      "tax_id": "TL:TL-2024-001256|BIN:123456789012345",
+      "created_at": "2026-05-24T15:59:08.424Z",
+      "uuid_hash": "8bc21f"
+    },
+    {
+      "name": "JustCF",
+      "address": "Dhaka",
+      "phone": "+8801778248899",
+      "trade_license_no": "TL-332",
+      "bin_no": "BB-CCC",
+      "entity_type": "cf_agent",
+      "email": "",
+      "company": "Just-CF",
+      "id": 3,
+      "created_at": "2026-06-07T20:05:47.569Z",
+      "folders": [
+        {
+          "id": "065ab065-f726-41d8-a952-ef86881e7116",
+          "name": "Import",
+          "created_at": "2026-06-08T14:15:38.268Z"
+        }
+      ],
+      "uuid_hash": "0e756a"
+    }
+  ],
+  "invoices": [],
+  "invoice_items": []
+}
