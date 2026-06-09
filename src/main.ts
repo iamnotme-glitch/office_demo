@@ -8,7 +8,7 @@ import { adminRouter } from './routes/adminRoutes.js';
 import { authenticate } from './middleware/auth.js';
 
 const app = express();
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 19320);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'src', 'views'));
