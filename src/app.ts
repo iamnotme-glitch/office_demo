@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import { invoiceRouter } from './routes/invoiceRoutes.js';
 import { authRouter } from './routes/authRoutes.js';
 import { adminRouter } from './routes/adminRoutes.js';
-// import { authenticate } from './middleware/auth.js';
+import { authenticate } from './middleware/auth.js';
 
 const app = express();
 
@@ -17,9 +17,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use('/', authRouter);
-// app.use('/', authenticate, invoiceRouter);
-app.use('/', invoiceRouter);
-// app.use('/', authenticate, adminRouter);
-app.use('/', adminRouter);
+app.use('/', authenticate, invoiceRouter);
+app.use('/', authenticate, adminRouter);
 
 export default app;
