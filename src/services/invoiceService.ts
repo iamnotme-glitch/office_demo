@@ -4,9 +4,9 @@ import { FinanceService } from './financeService.js';
 import { Client, Invoice, InvoiceItem, InvoiceRecord, CreateInvoiceDTO, UpdateInvoiceDTO, RateSegment, DemurrageEntry } from '../models/types.js';
 
 export class InvoiceService {
-  static getAllInvoices(): Invoice[] {
-    const invoices = InvoiceRepository.getInvoices();
-    const clients = InvoiceRepository.getClients();
+  static getAllInvoices(visitorId?: string): Invoice[] {
+    const invoices = InvoiceRepository.getInvoices(visitorId);
+    const clients = InvoiceRepository.getClients(visitorId);
 
     return invoices
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -19,14 +19,14 @@ export class InvoiceService {
       });
   }
 
-  static getInvoiceDetails(id: number): (Invoice & { items: InvoiceItem[] }) | null {
-    const record = InvoiceRepository.getInvoiceById(id);
+  static getInvoiceDetails(id: number, visitorId?: string): (Invoice & { items: InvoiceItem[] }) | null {
+    const record = InvoiceRepository.getInvoiceById(id, visitorId);
     if (!record) return null;
     return this.mapToInvoiceDetails(record);
   }
 
-  static getInvoiceDetailsByUuid(uuid: string): (Invoice & { items: InvoiceItem[] }) | null {
-    const record = InvoiceRepository.getInvoiceByUuid(uuid);
+  static getInvoiceDetailsByUuid(uuid: string, visitorId?: string): (Invoice & { items: InvoiceItem[] }) | null {
+    const record = InvoiceRepository.getInvoiceByUuid(uuid, visitorId);
     if (!record) return null;
     return this.mapToInvoiceDetails(record);
   }
@@ -252,8 +252,8 @@ export class InvoiceService {
     return crypto.randomBytes(3).toString('hex').toLowerCase();
   }
 
-  static getAllCompanies(): Client[] {
-    const clients = InvoiceRepository.getClients();
+  static getAllCompanies(visitorId?: string): Client[] {
+    const clients = InvoiceRepository.getClients(visitorId);
     let updated = false;
     
     clients.forEach(client => {
@@ -272,8 +272,8 @@ export class InvoiceService {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
-  static getCompanyMonthlySummary(companyId: number) {
-    const invoices = InvoiceRepository.getInvoicesByClientId(companyId);
+  static getCompanyMonthlySummary(companyId: number, visitorId?: string) {
+    const invoices = InvoiceRepository.getInvoicesByClientId(companyId, visitorId);
 
     return invoices
       .sort((a, b) => new Date(a.issue_date).getTime() - new Date(b.issue_date).getTime())

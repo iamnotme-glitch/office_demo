@@ -101,6 +101,7 @@ rawDb.exec(`
     email TEXT,
     phone TEXT,
     uuid_hash TEXT UNIQUE,
+    visitor_id TEXT,
     folders TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
@@ -137,6 +138,7 @@ rawDb.exec(`
     particulars_notes TEXT,
     folder_id TEXT,
     monthly_sequence INTEGER,
+    visitor_id TEXT,
     total_amount REAL,
     vehicle_rates TEXT,
     demurrage_entries TEXT,
@@ -171,12 +173,25 @@ const requiredInvoiceColumns = [
   { name: 'vehicle_type', definition: 'TEXT' },
   { name: 'vehicle_size', definition: 'TEXT' },
   { name: 'load_type', definition: 'TEXT' },
+  { name: 'visitor_id', definition: 'TEXT' },
 ];
 for (const column of requiredInvoiceColumns) {
   if (!invoiceColumns.includes(column.name)) {
     rawDb.exec(`ALTER TABLE invoices ADD COLUMN ${column.name} ${column.definition}`);
   }
 }
+
+const clientTableInfo = rawDb.exec('PRAGMA table_info(clients);')[0]?.values || [];
+const clientColumns = clientTableInfo.map((row: any) => row[1]);
+const requiredClientColumns = [
+  { name: 'visitor_id', definition: 'TEXT' },
+];
+for (const column of requiredClientColumns) {
+  if (!clientColumns.includes(column.name)) {
+    rawDb.exec(`ALTER TABLE clients ADD COLUMN ${column.name} ${column.definition}`);
+  }
+}
+
 const miscClient = db.prepare("SELECT * FROM clients WHERE name = 'Miscellaneous'").get();
 if (!miscClient) {
   db.prepare(`
