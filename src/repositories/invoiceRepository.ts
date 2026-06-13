@@ -3,15 +3,12 @@ import { Client, InvoiceItem, InvoiceRecord } from '../models/types.js';
 import { CacheService } from '../services/cacheService.js';
 
 export class InvoiceRepository {
-  static getClients(visitorId?: string): Client[] {
-    const cacheKey = visitorId ? `clients_${visitorId}` : 'clients_global';
+  static getClients(): Client[] {
+    const cacheKey = 'all_clients';
     const cached = CacheService.get<Client[]>(cacheKey);
     if (cached) return cached;
 
-    const rows = visitorId
-      ? db.prepare('SELECT * FROM clients WHERE visitor_id IS NULL OR visitor_id = ?').all([visitorId]) as any[]
-      : db.prepare('SELECT * FROM clients WHERE visitor_id IS NULL').all() as any[];
-
+    const rows = db.prepare('SELECT * FROM clients').all() as any[];
     const clients = rows.map(row => ({
       ...row,
       folders: row.folders ? JSON.parse(row.folders) : []
@@ -21,15 +18,12 @@ export class InvoiceRepository {
     return clients;
   }
 
-  static getInvoices(visitorId?: string): InvoiceRecord[] {
-    const cacheKey = visitorId ? `invoices_${visitorId}` : 'invoices_global';
+  static getInvoices(): InvoiceRecord[] {
+    const cacheKey = 'all_invoices';
     const cached = CacheService.get<InvoiceRecord[]>(cacheKey);
     if (cached) return cached;
 
-    const rows = visitorId
-      ? db.prepare('SELECT * FROM invoices WHERE visitor_id IS NULL OR visitor_id = ?').all([visitorId]) as any[]
-      : db.prepare('SELECT * FROM invoices WHERE visitor_id IS NULL').all() as any[];
-
+    const rows = db.prepare('SELECT * FROM invoices').all() as any[];
     const invoices = rows.map(row => this.mapInvoiceRow(row));
 
     CacheService.set(cacheKey, invoices, 30); // Cache for 30 seconds
@@ -40,17 +34,13 @@ export class InvoiceRepository {
     return db.prepare('SELECT * FROM invoice_items').all() as InvoiceItem[];
   }
 
-  static getInvoiceById(id: number, visitorId?: string): InvoiceRecord | null {
-    const row = visitorId
-      ? db.prepare('SELECT * FROM invoices WHERE id = ? AND (visitor_id IS NULL OR visitor_id = ?)').get([id, visitorId]) as any
-      : db.prepare('SELECT * FROM invoices WHERE id = ? AND visitor_id IS NULL').get([id]) as any;
+  static getInvoiceById(id: number): InvoiceRecord | null {
+    const row = db.prepare('SELECT * FROM invoices WHERE id = ?').get([id]) as any;
     return row ? this.mapInvoiceRow(row) : null;
   }
 
-  static getInvoiceByUuid(uuid: string, visitorId?: string): InvoiceRecord | null {
-    const row = visitorId
-      ? db.prepare('SELECT * FROM invoices WHERE invoice_uuid = ? AND (visitor_id IS NULL OR visitor_id = ?)').get([uuid, visitorId]) as any
-      : db.prepare('SELECT * FROM invoices WHERE invoice_uuid = ? AND visitor_id IS NULL').get([uuid]) as any;
+  static getInvoiceByUuid(uuid: string): InvoiceRecord | null {
+    const row = db.prepare('SELECT * FROM invoices WHERE invoice_uuid = ?').get([uuid]) as any;
     return row ? this.mapInvoiceRow(row) : null;
   }
 
@@ -58,22 +48,18 @@ export class InvoiceRepository {
     return db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all([invoiceId]) as InvoiceItem[];
   }
 
-  static getClientById(id: number, visitorId?: string): Client | null {
-    const row = visitorId
-      ? db.prepare('SELECT * FROM clients WHERE id = ? AND (visitor_id IS NULL OR visitor_id = ?)').get([id, visitorId]) as any
-      : db.prepare('SELECT * FROM clients WHERE id = ? AND visitor_id IS NULL').get([id]) as any;
+  static getClientById(id: number): Client | null {
+    const row = db.prepare('SELECT * FROM clients WHERE id = ?').get([id]) as any;
     return row ? { ...row, folders: row.folders ? JSON.parse(row.folders) : [] } : null;
   }
 
-  static getClientByHash(hash: string, visitorId?: string): Client | null {
-    const row = visitorId
-      ? db.prepare('SELECT * FROM clients WHERE uuid_hash = ? AND (visitor_id IS NULL OR visitor_id = ?)').get([hash, visitorId]) as any
-      : db.prepare('SELECT * FROM clients WHERE uuid_hash = ? AND visitor_id IS NULL').get([hash]) as any;
+  static getClientByHash(hash: string): Client | null {
+    const row = db.prepare('SELECT * FROM clients WHERE uuid_hash = ?').get([hash]) as any;
     return row ? { ...row, folders: row.folders ? JSON.parse(row.folders) : [] } : null;
   }
 
   static saveInvoice(record: InvoiceRecord): number {
-    CacheService.clear();
+    CacheService.delete('all_invoices');
     const stmt = db.prepare(`
       INSERT INTO invoices (
         client_id, sender_id, receiver_id, sender_name, sender_address, sender_type,
@@ -82,8 +68,8 @@ export class InvoiceRepository {
         vehicle_entries, vehicle_type, vehicle_size, load_type, good_volume, vehicle_count,
         quantity_unit, company_invoice_no, challan_no, particulars_source,
         particulars_destination, particulars_notes, folder_id, monthly_sequence,
-        visitor_id, total_amount, vehicle_rates, demurrage_entries, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_amount, vehicle_rates, demurrage_entries, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run([
@@ -99,7 +85,7 @@ export class InvoiceRepository {
       record.company_invoice_no || null, record.challan_no || null,
       record.particulars_source || null, record.particulars_destination || null,
       record.particulars_notes || null, record.folder_id || null, record.monthly_sequence || null,
-      record.visitor_id || null, record.total_amount, JSON.stringify(record.vehicle_rates || []),
+      record.total_amount, JSON.stringify(record.vehicle_rates || []),
       JSON.stringify(record.demurrage_entries || []), record.created_at
     ]);
 
@@ -107,7 +93,7 @@ export class InvoiceRepository {
   }
 
   static updateInvoice(record: InvoiceRecord): void {
-    CacheService.clear();
+    CacheService.delete('all_invoices');
     const stmt = db.prepare(`
       UPDATE invoices SET
         client_id = ?, sender_id = ?, receiver_id = ?, sender_name = ?, sender_address = ?,
@@ -117,7 +103,7 @@ export class InvoiceRepository {
         vehicle_entries = ?, vehicle_type = ?, vehicle_size = ?, load_type = ?, good_volume = ?,
         vehicle_count = ?, quantity_unit = ?, company_invoice_no = ?,
         challan_no = ?, particulars_source = ?, particulars_destination = ?,
-        particulars_notes = ?, folder_id = ?, monthly_sequence = ?, visitor_id = ?,
+        particulars_notes = ?, folder_id = ?, monthly_sequence = ?,
         total_amount = ?, vehicle_rates = ?, demurrage_entries = ?, created_at = ?
       WHERE id = ?
     `);
@@ -135,7 +121,7 @@ export class InvoiceRepository {
       record.company_invoice_no || null, record.challan_no || null,
       record.particulars_source || null, record.particulars_destination || null,
       record.particulars_notes || null, record.folder_id || null, record.monthly_sequence || null,
-      record.visitor_id || null, record.total_amount, JSON.stringify(record.vehicle_rates || []),
+      record.total_amount, JSON.stringify(record.vehicle_rates || []),
       JSON.stringify(record.demurrage_entries || []), record.created_at, record.id
     ]);
   }
@@ -165,48 +151,44 @@ export class InvoiceRepository {
   }
 
   static saveClient(client: Client): number {
-    CacheService.clear();
+    CacheService.delete('all_clients');
     const stmt = db.prepare(`
-      INSERT INTO clients (name, company, address, entity_type, trade_license_no, bin_no, email, phone, uuid_hash, visitor_id, folders, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO clients (name, company, address, entity_type, trade_license_no, bin_no, email, phone, uuid_hash, folders, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run([
       client.name, client.company || null, client.address || null, client.entity_type,
       client.trade_license_no || null, client.bin_no || null, client.email || null,
-      client.phone || null, client.uuid_hash, client.visitor_id || null, JSON.stringify(client.folders || []), client.created_at
+      client.phone || null, client.uuid_hash, JSON.stringify(client.folders || []), client.created_at
     ]);
 
     return result.lastInsertRowid as number;
   }
 
   static updateClient(client: Client): void {
-    CacheService.clear();
+    CacheService.delete('all_clients');
     const stmt = db.prepare(`
       UPDATE clients SET
         name = ?, company = ?, address = ?, entity_type = ?, trade_license_no = ?,
-        bin_no = ?, email = ?, phone = ?, uuid_hash = ?, visitor_id = ?, folders = ?, created_at = ?
+        bin_no = ?, email = ?, phone = ?, uuid_hash = ?, folders = ?, created_at = ?
       WHERE id = ?
     `);
 
     stmt.run([
       client.name, client.company || null, client.address || null, client.entity_type,
       client.trade_license_no || null, client.bin_no || null, client.email || null,
-      client.phone || null, client.uuid_hash, client.visitor_id || null, JSON.stringify(client.folders || []), client.created_at, client.id
+      client.phone || null, client.uuid_hash, JSON.stringify(client.folders || []), client.created_at, client.id
     ]);
   }
 
-  static getInvoicesByClientId(clientId: number, visitorId?: string): InvoiceRecord[] {
-    const rows = visitorId
-      ? db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND (visitor_id IS NULL OR visitor_id = ?)').all([clientId, visitorId]) as any[]
-      : db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND visitor_id IS NULL').all([clientId]) as any[];
+  static getInvoicesByClientId(clientId: number): InvoiceRecord[] {
+    const rows = db.prepare('SELECT * FROM invoices WHERE receiver_id = ?').all([clientId]) as any[];
     return rows.map(row => this.mapInvoiceRow(row));
   }
 
-  static getInvoicesByFolderId(clientId: number, folderId: string, visitorId?: string): InvoiceRecord[] {
-    const rows = visitorId
-      ? db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND folder_id = ? AND (visitor_id IS NULL OR visitor_id = ?)').all([clientId, folderId, visitorId]) as any[]
-      : db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND folder_id = ? AND visitor_id IS NULL').all([clientId, folderId]) as any[];
+  static getInvoicesByFolderId(clientId: number, folderId: string): InvoiceRecord[] {
+    const rows = db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND folder_id = ?').all([clientId, folderId]) as any[];
     return rows.map(row => this.mapInvoiceRow(row));
   }
 
@@ -224,13 +206,6 @@ export class InvoiceRepository {
   static getNextClientId(): number {
     const row = db.prepare('SELECT MAX(id) as maxId FROM clients').get() as any;
     return (row.maxId || 0) + 1;
-  }
-
-  static cleanupExpiredVisitorData(ttlMs: number): void {
-    CacheService.clear();
-    const expiry = new Date(Date.now() - ttlMs).toISOString();
-    db.prepare('DELETE FROM invoices WHERE visitor_id IS NOT NULL AND created_at < ?').run([expiry]);
-    db.prepare('DELETE FROM clients WHERE visitor_id IS NOT NULL AND created_at < ?').run([expiry]);
   }
 
   private static mapInvoiceRow(row: any): InvoiceRecord {

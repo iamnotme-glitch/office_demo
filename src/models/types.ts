@@ -15,7 +15,6 @@ export type Client = {
   email?: string;
   phone?: string;
   uuid_hash?: string;
-  visitor_id?: string;
   created_at: string;
   folders?: ClientFolder[];
 };
@@ -65,7 +64,6 @@ export type InvoiceRecord = {
   issue_date: string;
   status: string;
   notes?: string;
-  visitor_id?: string;
   transport_condition?: 'Normal' | 'Urgent' | 'Fragile' | 'Special';
   invoice_uuid?: string;
   vehicle_registration_nos?: string[];
@@ -108,7 +106,6 @@ export interface CreateInvoiceDTO {
   receiver_address: string;
   receiver_type?: 'company' | 'cf_agent';
   invoice_number: string;
-  visitor_id?: string;
   issue_date: string;
   notes: string;
   transport_condition?: 'Normal' | 'Urgent' | 'Fragile' | 'Special';

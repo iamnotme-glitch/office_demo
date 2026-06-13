@@ -138,14 +138,12 @@ const buildInvoiceDto = (body: any, entities: any[]) => {
 };
 
 invoiceRouter.get('/', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
-  const invoices = InvoiceService.getAllInvoices(visitorId);
+  const invoices = InvoiceService.getAllInvoices();
   res.render('index', { invoices, FinanceService, currentPage: 'invoices', pageTitle: 'Dashboard' });
 });
 
 invoiceRouter.get('/invoices/new', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
-  const entities = InvoiceRepository.getClients(visitorId);
+  const entities = InvoiceRepository.getClients();
   const preselectedReceiverId = req.query.receiver_id as string;
   res.render('new-invoice', { 
     entities, 
@@ -159,10 +157,8 @@ invoiceRouter.get('/invoices/new', (req, res) => {
 
 invoiceRouter.post('/invoices', (req, res) => {
   try {
-    const visitorId = res.locals.visitorId as string;
-    const entities = InvoiceRepository.getClients(visitorId);
+    const entities = InvoiceRepository.getClients();
     const dto = buildInvoiceDto(req.body, entities);
-    dto.visitor_id = visitorId;
     const createdUuid = InvoiceService.createInvoice(dto);
     res.redirect(`/invoices/${createdUuid}`);
   } catch (error) {
@@ -171,14 +167,13 @@ invoiceRouter.post('/invoices', (req, res) => {
 });
 
 invoiceRouter.get('/invoices/:uuid/edit', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid, visitorId);
+  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
   if (!invoice) {
     return res.status(404).send('Invoice not found');
   }
 
-  const entities = InvoiceRepository.getClients(visitorId);
+  const entities = InvoiceRepository.getClients();
   res.render('new-invoice', { 
     entities, 
     invoice, 
@@ -190,20 +185,18 @@ invoiceRouter.get('/invoices/:uuid/edit', (req, res) => {
 });
 
 invoiceRouter.post('/invoices/:id', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const invoiceId = Number(req.params.id);
-  const existing = InvoiceRepository.getInvoiceById(invoiceId, visitorId);
+  const existing = InvoiceRepository.getInvoiceById(invoiceId);
   if (!existing) {
     return res.status(404).send('Invoice not found');
   }
 
   try {
-    const entities = InvoiceRepository.getClients(visitorId);
+    const entities = InvoiceRepository.getClients();
     const dto = buildInvoiceDto(req.body, entities) as UpdateInvoiceDTO;
     dto.id = invoiceId;
     dto.status = existing.status;
     dto.created_at = existing.created_at;
-    dto.visitor_id = existing.visitor_id;
 
     const updatedUuid = InvoiceService.updateInvoice(dto);
     res.redirect(`/invoices/${updatedUuid}`);
@@ -213,9 +206,8 @@ invoiceRouter.post('/invoices/:id', (req, res) => {
 });
 
 invoiceRouter.get('/invoices/:uuid', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid, visitorId);
+  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
 
   if (!invoice) {
     return res.status(404).send('Invoice not found');
@@ -230,9 +222,8 @@ invoiceRouter.get('/invoices/:uuid', (req, res) => {
 });
 
 invoiceRouter.get('/invoices/:uuid/pdf', async (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid, visitorId);
+  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
 
   if (!invoice) {
     return res.status(404).send('Invoice not found');
@@ -261,8 +252,7 @@ invoiceRouter.post('/invoices/:uuid/delete', (req, res) => {
 });
 
 invoiceRouter.get('/companies', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
-  const companies = InvoiceService.getAllCompanies(visitorId);
+  const companies = InvoiceService.getAllCompanies();
   res.render('companies', { companies, currentPage: 'companies' });
 });
 
@@ -271,7 +261,6 @@ invoiceRouter.get('/companies/new', (req, res) => {
 });
 
 invoiceRouter.post('/companies', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const { name, address, phone, tradeLicenseNo, binNo, email, company, entityType } = req.body;
 
   if (!name || !address || !phone || !tradeLicenseNo || !binNo || !entityType) {
@@ -286,22 +275,20 @@ invoiceRouter.post('/companies', (req, res) => {
     bin_no: binNo,
     entity_type: entityType,
     email,
-    company,
-    visitor_id: visitorId
+    company
   });
   res.redirect(`/companies/${companyHash}`);
 });
 
 invoiceRouter.get('/companies/:hash', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const companyHash = req.params.hash;
-  const company = InvoiceRepository.getClientByHash(companyHash, visitorId);
+  const company = InvoiceRepository.getClientByHash(companyHash);
 
   if (!company) {
     return res.status(404).send('Company not found');
   }
 
-  const invoices = InvoiceRepository.getInvoicesByClientId(company.id, visitorId);
+  const invoices = InvoiceRepository.getInvoicesByClientId(company.id);
   const currentFolder = req.query.folder as string || 'all';
 
   res.render('company-detail', { 
@@ -315,15 +302,14 @@ invoiceRouter.get('/companies/:hash', (req, res) => {
 });
 
 invoiceRouter.get('/companies/:hash/monthly-summary', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const companyHash = req.params.hash;
-  const company = InvoiceRepository.getClientByHash(companyHash, visitorId);
+  const company = InvoiceRepository.getClientByHash(companyHash);
 
   if (!company) {
     return res.status(404).send('Company not found');
   }
 
-  const monthlySummaries = InvoiceService.getCompanyMonthlySummary(company.id, visitorId);
+  const monthlySummaries = InvoiceService.getCompanyMonthlySummary(company.id);
 
   res.render('company-monthly-summary', {
     company,
@@ -335,10 +321,9 @@ invoiceRouter.get('/companies/:hash/monthly-summary', (req, res) => {
 });
 
 invoiceRouter.post('/companies/:hash/folders', (req, res) => {
-  const visitorId = res.locals.visitorId as string;
   const companyHash = req.params.hash;
   const { name } = req.body;
-  const company = InvoiceRepository.getClientByHash(companyHash, visitorId);
+  const company = InvoiceRepository.getClientByHash(companyHash);
   
   if (!company) return res.status(404).send('Company not found');
   
