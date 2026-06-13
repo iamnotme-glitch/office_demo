@@ -4,9 +4,9 @@ import { FinanceService } from './financeService.js';
 import { Client, Invoice, InvoiceItem, InvoiceRecord, CreateInvoiceDTO, UpdateInvoiceDTO, RateSegment, DemurrageEntry } from '../models/types.js';
 
 export class InvoiceService {
-  static getAllInvoices(): Invoice[] {
-    const invoices = InvoiceRepository.getInvoices();
-    const clients = InvoiceRepository.getClients();
+  static async getAllInvoices(): Promise<Invoice[]> {
+    const invoices = await InvoiceRepository.getInvoices();
+    const clients = await InvoiceRepository.getClients();
 
     return invoices
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -19,22 +19,22 @@ export class InvoiceService {
       });
   }
 
-  static getInvoiceDetails(id: number): (Invoice & { items: InvoiceItem[] }) | null {
-    const record = InvoiceRepository.getInvoiceById(id);
+  static async getInvoiceDetails(id: number): Promise<(Invoice & { items: InvoiceItem[] }) | null> {
+    const record = await InvoiceRepository.getInvoiceById(id);
     if (!record) return null;
-    return this.mapToInvoiceDetails(record);
+    return await this.mapToInvoiceDetails(record);
   }
 
-  static getInvoiceDetailsByUuid(uuid: string): (Invoice & { items: InvoiceItem[] }) | null {
-    const record = InvoiceRepository.getInvoiceByUuid(uuid);
+  static async getInvoiceDetailsByUuid(uuid: string): Promise<(Invoice & { items: InvoiceItem[] }) | null> {
+    const record = await InvoiceRepository.getInvoiceByUuid(uuid);
     if (!record) return null;
-    return this.mapToInvoiceDetails(record);
+    return await this.mapToInvoiceDetails(record);
   }
 
-  private static mapToInvoiceDetails(record: InvoiceRecord): (Invoice & { items: InvoiceItem[] }) {
-    const sender = InvoiceRepository.getClientById(record.sender_id || -1);
-    const receiver = InvoiceRepository.getClientById(record.receiver_id || -1);
-    const items = InvoiceRepository.getItemsByInvoiceId(record.id);
+  private static async mapToInvoiceDetails(record: InvoiceRecord): Promise<(Invoice & { items: InvoiceItem[] })> {
+    const sender = await InvoiceRepository.getClientById(record.sender_id || -1);
+    const receiver = await InvoiceRepository.getClientById(record.receiver_id || -1);
+    const items = await InvoiceRepository.getItemsByInvoiceId(record.id);
 
     // Reconstruct vehicle_entries if missing or null in DB
     const vehicle_entries = record.vehicle_entries && record.vehicle_entries.length > 0
@@ -65,11 +65,10 @@ export class InvoiceService {
     };
   }
 
-  static createInvoice(dto: CreateInvoiceDTO): string {
-    const nextInvoiceId = InvoiceRepository.getNextInvoiceId();
+  static async createInvoice(dto: CreateInvoiceDTO): Promise<string> {
     // Ensure a truly random UUID is generated if not provided
-    const invoiceUuid = (dto.invoice_uuid && dto.invoice_uuid.trim().length > 0) 
-      ? dto.invoice_uuid.trim() 
+    const invoiceUuid = (dto.invoice_uuid && dto.invoice_uuid.trim().length > 0)
+      ? dto.invoice_uuid.trim()
       : crypto.randomUUID();
 
     // Calculate monthly sequence
@@ -78,10 +77,10 @@ export class InvoiceService {
     const year = issueDate.getFullYear();
     const monthYearStr = `${String(month + 1).padStart(2, '0')}${String(year).slice(-2)}`;
 
-    const receiver = InvoiceRepository.getClientById(dto.receiver_id || -1);
+    const receiver = await InvoiceRepository.getClientById(dto.receiver_id || -1);
     const companyShortName = (receiver?.company || receiver?.name?.slice(0, 4).toUpperCase() || 'INV').replace(/\s+/g, '-').toUpperCase();
 
-    const monthlyInvoices = InvoiceRepository.getInvoices().filter(inv => {
+    const monthlyInvoices = (await InvoiceRepository.getInvoices()).filter(inv => {
       const d = new Date(inv.issue_date);
       return d.getMonth() === month && d.getFullYear() === year && inv.receiver_id === dto.receiver_id;
     });
@@ -111,7 +110,7 @@ export class InvoiceService {
     );
 
     const record: InvoiceRecord = {
-      id: nextInvoiceId,
+      id: 0,
       client_id: dto.receiver_id ?? undefined,
       sender_id: dto.sender_id ?? undefined,
       receiver_id: dto.receiver_id ?? undefined,
@@ -148,25 +147,22 @@ export class InvoiceService {
       created_at: new Date().toISOString(),
     };
 
-    InvoiceRepository.saveInvoice(record);
+    const invoiceId = await InvoiceRepository.saveInvoice(record);
 
-    let nextItemId = InvoiceRepository.getNextItemId();
     const itemsToSave: InvoiceItem[] = preparedItems.map(item => ({
-      id: nextItemId++,
-      invoice_id: nextInvoiceId,
+      invoice_id: invoiceId,
       description: item.description,
       quantity: item.quantity,
       rate: item.rate,
       amount: item.amount,
-    }));
+    } as InvoiceItem));
 
-    InvoiceRepository.saveInvoiceItems(itemsToSave);
-
+    await InvoiceRepository.saveInvoiceItems(itemsToSave);
     return invoiceUuid;
   }
 
-  static updateInvoice(dto: UpdateInvoiceDTO): string {
-    const existing = InvoiceRepository.getInvoiceById(dto.id);
+  static async updateInvoice(dto: UpdateInvoiceDTO): Promise<string> {
+    const existing = await InvoiceRepository.getInvoiceById(dto.id);
     if (!existing) {
       throw new Error('Invoice not found');
     }
@@ -183,7 +179,6 @@ export class InvoiceService {
       dto.demurrage_entries
     );
 
-    // Keep existing UUID if no new one is provided in the DTO
     const invoiceUuid = (dto.invoice_uuid && dto.invoice_uuid.trim().length > 0)
       ? dto.invoice_uuid.trim()
       : (existing.invoice_uuid || crypto.randomUUID());
@@ -226,45 +221,40 @@ export class InvoiceService {
       created_at: dto.created_at ?? existing.created_at,
     };
 
-    InvoiceRepository.updateInvoice(record);
+    await InvoiceRepository.updateInvoice(record);
 
-    let nextItemId = InvoiceRepository.getNextItemId();
     const itemsToSave: InvoiceItem[] = preparedItems.map(item => ({
-      id: nextItemId++,
       invoice_id: dto.id,
       description: item.description,
       quantity: item.quantity,
       rate: item.rate,
       amount: item.amount,
-    }));
+    } as InvoiceItem));
 
-    InvoiceRepository.replaceInvoiceItems(dto.id, itemsToSave);
+    await InvoiceRepository.replaceInvoiceItems(dto.id, itemsToSave);
     return invoiceUuid;
   }
 
-  static deleteInvoiceByUuid(uuid: string): void {
-    const record = InvoiceRepository.getInvoiceByUuid(uuid);
+  static async deleteInvoiceByUuid(uuid: string): Promise<void> {
+    const record = await InvoiceRepository.getInvoiceByUuid(uuid);
     if (!record) throw new Error('Invoice not found');
-    InvoiceRepository.deleteInvoice(record.id);
+    await InvoiceRepository.deleteInvoice(record.id);
   }
 
   private static generateClientHash(): string {
     return crypto.randomBytes(3).toString('hex').toLowerCase();
   }
 
-  static getAllCompanies(): Client[] {
-    const clients = InvoiceRepository.getClients();
+  static async getAllCompanies(): Promise<Client[]> {
+    const clients = await InvoiceRepository.getClients();
     let updated = false;
     
-    clients.forEach(client => {
+    for (const client of clients) {
       if (!client.uuid_hash) {
         client.uuid_hash = this.generateClientHash();
         updated = true;
+        await InvoiceRepository.updateClient(client);
       }
-    });
-
-    if (updated) {
-      clients.forEach(c => InvoiceRepository.updateClient(c));
     }
 
     return clients
@@ -272,12 +262,12 @@ export class InvoiceService {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
-  static getCompanyMonthlySummary(companyId: number) {
-    const invoices = InvoiceRepository.getInvoicesByClientId(companyId);
+  static async getCompanyMonthlySummary(companyId: number) {
+    const invoices = await InvoiceRepository.getInvoicesByClientId(companyId);
 
-    return invoices
+    const results = await Promise.all(invoices
       .sort((a, b) => new Date(a.issue_date).getTime() - new Date(b.issue_date).getTime())
-      .map((invoice) => {
+      .map(async (invoice) => {
         const vehicleEntries = Array.isArray(invoice.vehicle_entries) && invoice.vehicle_entries.length > 0
           ? invoice.vehicle_entries
           : (invoice.vehicle_type ? [{ vehicle_type: invoice.vehicle_type }] : []);
@@ -296,7 +286,7 @@ export class InvoiceService {
           ? invoice.demurrage_entries.reduce((sum, dem) => sum + (dem.amount || 0), 0)
           : 0;
 
-        const items = InvoiceRepository.getItemsByInvoiceId(invoice.id);
+        const items = await InvoiceRepository.getItemsByInvoiceId(invoice.id);
         const totalAdditionalCharge = items.reduce((sum, item) => sum + (item.amount || 0), 0);
 
         return {
@@ -311,20 +301,21 @@ export class InvoiceService {
           total_additional_charge: totalAdditionalCharge,
           total_bill: invoice.total_amount || 0,
         };
-      });
+      }));
+
+    return results;
   }
 
-  static createCompany(data: Omit<Client, 'id' | 'created_at' | 'uuid_hash'>): string {
-    const nextClientId = InvoiceRepository.getNextClientId();
+  static async createCompany(data: Omit<Client, 'id' | 'created_at' | 'uuid_hash'>): Promise<string> {
     const hash = this.generateClientHash();
     const newClient: Client = {
       ...data,
-      id: nextClientId,
+      id: 0,
       uuid_hash: hash,
       created_at: new Date().toISOString(),
     };
 
-    InvoiceRepository.saveClient(newClient);
+    await InvoiceRepository.saveClient(newClient);
     return hash;
   }
 }

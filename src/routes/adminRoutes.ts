@@ -4,10 +4,10 @@ import { InvoiceRepository } from '../repositories/invoiceRepository.js';
 
 const router = Router();
 
-router.get('/admin', (req, res) => {
-  const users = UserRepository.getAllUsers();
-  const invoices = InvoiceRepository.getInvoices();
-  const clients = InvoiceRepository.getClients();
+router.get('/admin', async (req, res) => {
+  const users = await UserRepository.getAllUsers();
+  const invoices = await InvoiceRepository.getInvoices();
+  const clients = await InvoiceRepository.getClients();
   
   res.render('admin/dashboard', {
     pageTitle: 'Admin Panel',
@@ -22,16 +22,16 @@ router.get('/admin', (req, res) => {
   });
 });
 
-router.post('/admin/users/:id/role', (req, res) => {
+router.post('/admin/users/:id/role', async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
-  UserRepository.updateUser(parseInt(id), { role });
+  await UserRepository.updateUser(parseInt(id), { role });
   res.json({ success: true });
 });
 
-router.delete('/admin/users/:id', (req, res) => {
+router.delete('/admin/users/:id', async (req, res) => {
   const { id } = req.params;
-  UserRepository.deleteUser(parseInt(id));
+  await UserRepository.deleteUser(parseInt(id));
   res.json({ success: true });
 });
 

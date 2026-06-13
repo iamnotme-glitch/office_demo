@@ -8,13 +8,13 @@ const JWT_EXPIRES_IN = '24h';
 
 export class AuthService {
   static async register(username: string, email: string, password: string, role: 'admin' | 'user' = 'user'): Promise<number> {
-    const existingUser = UserRepository.getUserByUsername(username) || UserRepository.getUserByEmail(email);
+    const existingUser = (await UserRepository.getUserByUsername(username)) || (await UserRepository.getUserByEmail(email));
     if (existingUser) {
       throw new Error('User already exists');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    return UserRepository.createUser({
+    return await UserRepository.createUser({
       username,
       email,
       password: hashedPassword,
@@ -24,7 +24,7 @@ export class AuthService {
   }
 
   static async login(username: string, password: string): Promise<{ token: string; user: Omit<User, 'password'> }> {
-    const user = UserRepository.getUserByUsername(username);
+    const user = await UserRepository.getUserByUsername(username);
     if (!user || !user.password) {
       throw new Error('Invalid credentials');
     }

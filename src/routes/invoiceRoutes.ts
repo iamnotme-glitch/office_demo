@@ -81,18 +81,6 @@ const buildInvoiceDto = (body: any, entities: any[]) => {
     return value;
   });
 
-  const vehicleTypes: string[] = Array.isArray(body.vehicle_type)
-    ? body.vehicle_type
-    : body.vehicle_type ? [body.vehicle_type] : [];
-
-  const vehicleSizes: string[] = Array.isArray(body.vehicle_size)
-    ? body.vehicle_size
-    : body.vehicle_size ? [body.vehicle_size] : [];
-
-  const loadTypes: string[] = Array.isArray(body.vehicle_load_type)
-    ? body.vehicle_load_type
-    : body.vehicle_load_type ? [body.vehicle_load_type] : [];
-
   const vehicleEntries: VehicleEntry[] = fullRegistrations
     .map((registration: string, index: number) => ({
       registration: (registration || '').trim(),
@@ -117,7 +105,6 @@ const buildInvoiceDto = (body: any, entities: any[]) => {
     transport_condition: body.transport_condition,
     vehicle_entries: vehicleEntries,
     vehicle_registration_nos: vehicleEntries.map((e) => e.registration),
-    // Use first element for top-level fields if appropriate, or handle as needed
     vehicle_type: vehicleEntries[0]?.vehicle_type,
     vehicle_size: vehicleEntries[0]?.vehicle_size || '',
     load_type: vehicleEntries[0]?.load_type,
@@ -137,13 +124,13 @@ const buildInvoiceDto = (body: any, entities: any[]) => {
   } as CreateInvoiceDTO;
 };
 
-invoiceRouter.get('/', (req, res) => {
-  const invoices = InvoiceService.getAllInvoices();
+invoiceRouter.get('/', async (req, res) => {
+  const invoices = await InvoiceService.getAllInvoices();
   res.render('index', { invoices, FinanceService, currentPage: 'invoices', pageTitle: 'Dashboard' });
 });
 
-invoiceRouter.get('/invoices/new', (req, res) => {
-  const entities = InvoiceRepository.getClients();
+invoiceRouter.get('/invoices/new', async (req, res) => {
+  const entities = await InvoiceRepository.getClients();
   const preselectedReceiverId = req.query.receiver_id as string;
   res.render('new-invoice', { 
     entities, 
@@ -155,25 +142,25 @@ invoiceRouter.get('/invoices/new', (req, res) => {
   });
 });
 
-invoiceRouter.post('/invoices', (req, res) => {
+invoiceRouter.post('/invoices', async (req, res) => {
   try {
-    const entities = InvoiceRepository.getClients();
+    const entities = await InvoiceRepository.getClients();
     const dto = buildInvoiceDto(req.body, entities);
-    const createdUuid = InvoiceService.createInvoice(dto);
+    const createdUuid = await InvoiceService.createInvoice(dto);
     res.redirect(`/invoices/${createdUuid}`);
   } catch (error) {
     res.status(400).send((error as Error).message);
   }
 });
 
-invoiceRouter.get('/invoices/:uuid/edit', (req, res) => {
+invoiceRouter.get('/invoices/:uuid/edit', async (req, res) => {
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
+  const invoice = await InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
   if (!invoice) {
     return res.status(404).send('Invoice not found');
   }
 
-  const entities = InvoiceRepository.getClients();
+  const entities = await InvoiceRepository.getClients();
   res.render('new-invoice', { 
     entities, 
     invoice, 
@@ -184,30 +171,30 @@ invoiceRouter.get('/invoices/:uuid/edit', (req, res) => {
   });
 });
 
-invoiceRouter.post('/invoices/:id', (req, res) => {
+invoiceRouter.post('/invoices/:id', async (req, res) => {
   const invoiceId = Number(req.params.id);
-  const existing = InvoiceRepository.getInvoiceById(invoiceId);
+  const existing = await InvoiceRepository.getInvoiceById(invoiceId);
   if (!existing) {
     return res.status(404).send('Invoice not found');
   }
 
   try {
-    const entities = InvoiceRepository.getClients();
+    const entities = await InvoiceRepository.getClients();
     const dto = buildInvoiceDto(req.body, entities) as UpdateInvoiceDTO;
     dto.id = invoiceId;
     dto.status = existing.status;
     dto.created_at = existing.created_at;
 
-    const updatedUuid = InvoiceService.updateInvoice(dto);
+    const updatedUuid = await InvoiceService.updateInvoice(dto);
     res.redirect(`/invoices/${updatedUuid}`);
   } catch (error) {
     res.status(400).send((error as Error).message);
   }
 });
 
-invoiceRouter.get('/invoices/:uuid', (req, res) => {
+invoiceRouter.get('/invoices/:uuid', async (req, res) => {
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
+  const invoice = await InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
 
   if (!invoice) {
     return res.status(404).send('Invoice not found');
@@ -223,7 +210,7 @@ invoiceRouter.get('/invoices/:uuid', (req, res) => {
 
 invoiceRouter.get('/invoices/:uuid/pdf', async (req, res) => {
   const invoiceUuid = req.params.uuid;
-  const invoice = InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
+  const invoice = await InvoiceService.getInvoiceDetailsByUuid(invoiceUuid);
 
   if (!invoice) {
     return res.status(404).send('Invoice not found');
@@ -241,18 +228,18 @@ invoiceRouter.get('/invoices/:uuid/pdf', async (req, res) => {
   }
 });
 
-invoiceRouter.post('/invoices/:uuid/delete', (req, res) => {
+invoiceRouter.post('/invoices/:uuid/delete', async (req, res) => {
   try {
     const uuid = req.params.uuid;
-    InvoiceService.deleteInvoiceByUuid(uuid);
+    await InvoiceService.deleteInvoiceByUuid(uuid);
     res.redirect('/');
   } catch (error) {
     res.status(400).send((error as Error).message);
   }
 });
 
-invoiceRouter.get('/companies', (req, res) => {
-  const companies = InvoiceService.getAllCompanies();
+invoiceRouter.get('/companies', async (req, res) => {
+  const companies = await InvoiceService.getAllCompanies();
   res.render('companies', { companies, currentPage: 'companies' });
 });
 
@@ -260,14 +247,14 @@ invoiceRouter.get('/companies/new', (req, res) => {
   res.render('company-enlist', { currentPage: 'new-company', pageTitle: 'Enlist New Entity' });
 });
 
-invoiceRouter.post('/companies', (req, res) => {
+invoiceRouter.post('/companies', async (req, res) => {
   const { name, address, phone, tradeLicenseNo, binNo, email, company, entityType } = req.body;
 
   if (!name || !address || !phone || !tradeLicenseNo || !binNo || !entityType) {
     return res.status(400).send('Missing required fields');
   }
 
-  const companyHash = InvoiceService.createCompany({
+  const companyHash = await InvoiceService.createCompany({
     name,
     address,
     phone,
@@ -280,15 +267,15 @@ invoiceRouter.post('/companies', (req, res) => {
   res.redirect(`/companies/${companyHash}`);
 });
 
-invoiceRouter.get('/companies/:hash', (req, res) => {
+invoiceRouter.get('/companies/:hash', async (req, res) => {
   const companyHash = req.params.hash;
-  const company = InvoiceRepository.getClientByHash(companyHash);
+  const company = await InvoiceRepository.getClientByHash(companyHash);
 
   if (!company) {
     return res.status(404).send('Company not found');
   }
 
-  const invoices = InvoiceRepository.getInvoicesByClientId(company.id);
+  const invoices = await InvoiceRepository.getInvoicesByClientId(company.id);
   const currentFolder = req.query.folder as string || 'all';
 
   res.render('company-detail', { 
@@ -301,15 +288,15 @@ invoiceRouter.get('/companies/:hash', (req, res) => {
   });
 });
 
-invoiceRouter.get('/companies/:hash/monthly-summary', (req, res) => {
+invoiceRouter.get('/companies/:hash/monthly-summary', async (req, res) => {
   const companyHash = req.params.hash;
-  const company = InvoiceRepository.getClientByHash(companyHash);
+  const company = await InvoiceRepository.getClientByHash(companyHash);
 
   if (!company) {
     return res.status(404).send('Company not found');
   }
 
-  const monthlySummaries = InvoiceService.getCompanyMonthlySummary(company.id);
+  const monthlySummaries = await InvoiceService.getCompanyMonthlySummary(company.id);
 
   res.render('company-monthly-summary', {
     company,
@@ -320,10 +307,10 @@ invoiceRouter.get('/companies/:hash/monthly-summary', (req, res) => {
   });
 });
 
-invoiceRouter.post('/companies/:hash/folders', (req, res) => {
+invoiceRouter.post('/companies/:hash/folders', async (req, res) => {
   const companyHash = req.params.hash;
   const { name } = req.body;
-  const company = InvoiceRepository.getClientByHash(companyHash);
+  const company = await InvoiceRepository.getClientByHash(companyHash);
   
   if (!company) return res.status(404).send('Company not found');
   
@@ -335,6 +322,6 @@ invoiceRouter.post('/companies/:hash/folders', (req, res) => {
   });
   
   company.folders = folders;
-  InvoiceRepository.updateClient(company);
+  await InvoiceRepository.updateClient(company);
   res.redirect(`/companies/${companyHash}`);
 });

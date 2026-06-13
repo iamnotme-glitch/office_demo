@@ -3,12 +3,12 @@ import { Client, InvoiceItem, InvoiceRecord } from '../models/types.js';
 import { CacheService } from '../services/cacheService.js';
 
 export class InvoiceRepository {
-  static getClients(): Client[] {
+  static async getClients(): Promise<Client[]> {
     const cacheKey = 'all_clients';
     const cached = CacheService.get<Client[]>(cacheKey);
     if (cached) return cached;
 
-    const rows = db.prepare('SELECT * FROM clients').all() as any[];
+    const rows = await db.prepare('SELECT * FROM clients').all();
     const clients = rows.map(row => ({
       ...row,
       folders: row.folders ? JSON.parse(row.folders) : []
@@ -18,47 +18,47 @@ export class InvoiceRepository {
     return clients;
   }
 
-  static getInvoices(): InvoiceRecord[] {
+  static async getInvoices(): Promise<InvoiceRecord[]> {
     const cacheKey = 'all_invoices';
     const cached = CacheService.get<InvoiceRecord[]>(cacheKey);
     if (cached) return cached;
 
-    const rows = db.prepare('SELECT * FROM invoices').all() as any[];
+    const rows = await db.prepare('SELECT * FROM invoices').all();
     const invoices = rows.map(row => this.mapInvoiceRow(row));
 
     CacheService.set(cacheKey, invoices, 30); // Cache for 30 seconds
     return invoices;
   }
 
-  static getInvoiceItems(): InvoiceItem[] {
-    return db.prepare('SELECT * FROM invoice_items').all() as InvoiceItem[];
+  static async getInvoiceItems(): Promise<InvoiceItem[]> {
+    return await db.prepare('SELECT * FROM invoice_items').all();
   }
 
-  static getInvoiceById(id: number): InvoiceRecord | null {
-    const row = db.prepare('SELECT * FROM invoices WHERE id = ?').get([id]) as any;
+  static async getInvoiceById(id: number): Promise<InvoiceRecord | null> {
+    const row = await db.prepare('SELECT * FROM invoices WHERE id = ?').get([id]);
     return row ? this.mapInvoiceRow(row) : null;
   }
 
-  static getInvoiceByUuid(uuid: string): InvoiceRecord | null {
-    const row = db.prepare('SELECT * FROM invoices WHERE invoice_uuid = ?').get([uuid]) as any;
+  static async getInvoiceByUuid(uuid: string): Promise<InvoiceRecord | null> {
+    const row = await db.prepare('SELECT * FROM invoices WHERE invoice_uuid = ?').get([uuid]);
     return row ? this.mapInvoiceRow(row) : null;
   }
 
-  static getItemsByInvoiceId(invoiceId: number): InvoiceItem[] {
-    return db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all([invoiceId]) as InvoiceItem[];
+  static async getItemsByInvoiceId(invoiceId: number): Promise<InvoiceItem[]> {
+    return await db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all([invoiceId]);
   }
 
-  static getClientById(id: number): Client | null {
-    const row = db.prepare('SELECT * FROM clients WHERE id = ?').get([id]) as any;
+  static async getClientById(id: number): Promise<Client | null> {
+    const row = await db.prepare('SELECT * FROM clients WHERE id = ?').get([id]);
     return row ? { ...row, folders: row.folders ? JSON.parse(row.folders) : [] } : null;
   }
 
-  static getClientByHash(hash: string): Client | null {
-    const row = db.prepare('SELECT * FROM clients WHERE uuid_hash = ?').get([hash]) as any;
+  static async getClientByHash(hash: string): Promise<Client | null> {
+    const row = await db.prepare('SELECT * FROM clients WHERE uuid_hash = ?').get([hash]);
     return row ? { ...row, folders: row.folders ? JSON.parse(row.folders) : [] } : null;
   }
 
-  static saveInvoice(record: InvoiceRecord): number {
+  static async saveInvoice(record: InvoiceRecord): Promise<number> {
     CacheService.delete('all_invoices');
     const stmt = db.prepare(`
       INSERT INTO invoices (
@@ -69,10 +69,10 @@ export class InvoiceRepository {
         quantity_unit, company_invoice_no, challan_no, particulars_source,
         particulars_destination, particulars_notes, folder_id, monthly_sequence,
         total_amount, vehicle_rates, demurrage_entries, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `);
 
-    const result = stmt.run([
+    const result = await stmt.run([
       record.client_id || null, record.sender_id || null, record.receiver_id || null,
       record.sender_name || null, record.sender_address || null, record.sender_type || null,
       record.receiver_name || null, record.receiver_address || null, record.receiver_type || null,
@@ -92,7 +92,7 @@ export class InvoiceRepository {
     return result.lastInsertRowid as number;
   }
 
-  static updateInvoice(record: InvoiceRecord): void {
+  static async updateInvoice(record: InvoiceRecord): Promise<void> {
     CacheService.delete('all_invoices');
     const stmt = db.prepare(`
       UPDATE invoices SET
@@ -108,7 +108,7 @@ export class InvoiceRepository {
       WHERE id = ?
     `);
 
-    stmt.run([
+    await stmt.run([
       record.client_id || null, record.sender_id || null, record.receiver_id || null,
       record.sender_name || null, record.sender_address || null, record.sender_type || null,
       record.receiver_name || null, record.receiver_address || null, record.receiver_type || null,
@@ -126,38 +126,38 @@ export class InvoiceRepository {
     ]);
   }
 
-  static deleteInvoice(id: number): void {
-    db.prepare('DELETE FROM invoices WHERE id = ?').run(id);
+  static async deleteInvoice(id: number): Promise<void> {
+    await db.prepare('DELETE FROM invoices WHERE id = ?').run(id);
   }
 
-  static saveInvoiceItems(items: InvoiceItem[]): void {
+  static async saveInvoiceItems(items: InvoiceItem[]): Promise<void> {
     const stmt = db.prepare(`
       INSERT INTO invoice_items (invoice_id, description, quantity, rate, amount)
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    const transaction = db.transaction((items: InvoiceItem[]) => {
+    const transaction = db.transaction(async (items: InvoiceItem[]) => {
       for (const item of items) {
-        stmt.run([item.invoice_id, item.description, item.quantity, item.rate, item.amount]);
+        await stmt.run([item.invoice_id, item.description, item.quantity, item.rate, item.amount]);
       }
     });
 
-    transaction(items);
+    await transaction(items);
   }
 
-  static replaceInvoiceItems(invoiceId: number, items: InvoiceItem[]): void {
-    db.prepare('DELETE FROM invoice_items WHERE invoice_id = ?').run(invoiceId);
-    this.saveInvoiceItems(items);
+  static async replaceInvoiceItems(invoiceId: number, items: InvoiceItem[]): Promise<void> {
+    await db.prepare('DELETE FROM invoice_items WHERE invoice_id = ?').run(invoiceId);
+    await this.saveInvoiceItems(items);
   }
 
-  static saveClient(client: Client): number {
+  static async saveClient(client: Client): Promise<number> {
     CacheService.delete('all_clients');
     const stmt = db.prepare(`
       INSERT INTO clients (name, company, address, entity_type, trade_license_no, bin_no, email, phone, uuid_hash, folders, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `);
 
-    const result = stmt.run([
+    const result = await stmt.run([
       client.name, client.company || null, client.address || null, client.entity_type,
       client.trade_license_no || null, client.bin_no || null, client.email || null,
       client.phone || null, client.uuid_hash, JSON.stringify(client.folders || []), client.created_at
@@ -166,7 +166,7 @@ export class InvoiceRepository {
     return result.lastInsertRowid as number;
   }
 
-  static updateClient(client: Client): void {
+  static async updateClient(client: Client): Promise<void> {
     CacheService.delete('all_clients');
     const stmt = db.prepare(`
       UPDATE clients SET
@@ -175,37 +175,36 @@ export class InvoiceRepository {
       WHERE id = ?
     `);
 
-    stmt.run([
+    await stmt.run([
       client.name, client.company || null, client.address || null, client.entity_type,
       client.trade_license_no || null, client.bin_no || null, client.email || null,
       client.phone || null, client.uuid_hash, JSON.stringify(client.folders || []), client.created_at, client.id
     ]);
   }
 
-  static getInvoicesByClientId(clientId: number): InvoiceRecord[] {
-    const rows = db.prepare('SELECT * FROM invoices WHERE receiver_id = ?').all([clientId]) as any[];
+  static async getInvoicesByClientId(clientId: number): Promise<InvoiceRecord[]> {
+    const rows = await db.prepare('SELECT * FROM invoices WHERE receiver_id = ?').all([clientId]);
     return rows.map(row => this.mapInvoiceRow(row));
   }
 
-  static getInvoicesByFolderId(clientId: number, folderId: string): InvoiceRecord[] {
-    const rows = db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND folder_id = ?').all([clientId, folderId]) as any[];
+  static async getInvoicesByFolderId(clientId: number, folderId: string): Promise<InvoiceRecord[]> {
+    const rows = await db.prepare('SELECT * FROM invoices WHERE receiver_id = ? AND folder_id = ?').all([clientId, folderId]);
     return rows.map(row => this.mapInvoiceRow(row));
   }
 
-  static getNextInvoiceId(): number {
-    // This is less critical with AUTOINCREMENT, but kept for compatibility
-    const row = db.prepare('SELECT MAX(id) as maxId FROM invoices').get() as any;
-    return (row.maxId || 0) + 1;
+  static async getNextInvoiceId(): Promise<number> {
+    const row = await db.prepare('SELECT MAX(id) as maxId FROM invoices').get();
+    return (row?.maxId || 0) + 1;
   }
 
-  static getNextItemId(): number {
-    const row = db.prepare('SELECT MAX(id) as maxId FROM invoice_items').get() as any;
-    return (row.maxId || 0) + 1;
+  static async getNextItemId(): Promise<number> {
+    const row = await db.prepare('SELECT MAX(id) as maxId FROM invoice_items').get();
+    return (row?.maxId || 0) + 1;
   }
 
-  static getNextClientId(): number {
-    const row = db.prepare('SELECT MAX(id) as maxId FROM clients').get() as any;
-    return (row.maxId || 0) + 1;
+  static async getNextClientId(): Promise<number> {
+    const row = await db.prepare('SELECT MAX(id) as maxId FROM clients').get();
+    return (row?.maxId || 0) + 1;
   }
 
   private static mapInvoiceRow(row: any): InvoiceRecord {
