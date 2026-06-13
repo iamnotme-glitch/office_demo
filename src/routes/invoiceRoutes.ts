@@ -301,6 +301,25 @@ invoiceRouter.get('/companies/:hash', (req, res) => {
   });
 });
 
+invoiceRouter.get('/companies/:hash/monthly-summary', (req, res) => {
+  const companyHash = req.params.hash;
+  const company = InvoiceRepository.getClientByHash(companyHash);
+
+  if (!company) {
+    return res.status(404).send('Company not found');
+  }
+
+  const monthlySummaries = InvoiceService.getCompanyMonthlySummary(company.id);
+
+  res.render('company-monthly-summary', {
+    company,
+    monthlySummaries,
+    currentPage: 'companies',
+    pageTitle: `${company.name} Monthly Summary`,
+    FinanceService
+  });
+});
+
 invoiceRouter.post('/companies/:hash/folders', (req, res) => {
   const companyHash = req.params.hash;
   const { name } = req.body;

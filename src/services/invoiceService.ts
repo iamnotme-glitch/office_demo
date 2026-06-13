@@ -272,6 +272,48 @@ export class InvoiceService {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
+  static getCompanyMonthlySummary(companyId: number) {
+    const invoices = InvoiceRepository.getInvoicesByClientId(companyId);
+
+    return invoices
+      .sort((a, b) => new Date(a.issue_date).getTime() - new Date(b.issue_date).getTime())
+      .map((invoice) => {
+        const vehicleEntries = Array.isArray(invoice.vehicle_entries) && invoice.vehicle_entries.length > 0
+          ? invoice.vehicle_entries
+          : (invoice.vehicle_type ? [{ vehicle_type: invoice.vehicle_type }] : []);
+
+        const vehicleTypeCounts: Record<string, number> = {};
+        vehicleEntries.forEach((vehicle: any) => {
+          const typeName = vehicle.vehicle_type || 'Unknown';
+          vehicleTypeCounts[typeName] = (vehicleTypeCounts[typeName] || 0) + 1;
+        });
+
+        const totalVehicleRate = Array.isArray(invoice.vehicle_rates)
+          ? invoice.vehicle_rates.reduce((sum, rate) => sum + (rate.amount || 0), 0)
+          : 0;
+
+        const totalDemurrageRate = Array.isArray(invoice.demurrage_entries)
+          ? invoice.demurrage_entries.reduce((sum, dem) => sum + (dem.amount || 0), 0)
+          : 0;
+
+        const items = InvoiceRepository.getItemsByInvoiceId(invoice.id);
+        const totalAdditionalCharge = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+        return {
+          invoice_number: invoice.invoice_number,
+          issue_date: invoice.issue_date,
+          issue_label: new Date(invoice.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
+          month_label: new Date(invoice.issue_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+          total_cars: invoice.vehicle_count || vehicleEntries.length || 0,
+          vehicle_counts: Object.entries(vehicleTypeCounts).map(([type, count]) => ({ type, count })),
+          total_vehicle_rate: totalVehicleRate,
+          total_demurrage_rate: totalDemurrageRate,
+          total_additional_charge: totalAdditionalCharge,
+          total_bill: invoice.total_amount || 0,
+        };
+      });
+  }
+
   static createCompany(data: Omit<Client, 'id' | 'created_at' | 'uuid_hash'>): string {
     const nextClientId = InvoiceRepository.getNextClientId();
     const hash = this.generateClientHash();

@@ -5,12 +5,15 @@
     <i class="fa-solid fa-arrow-left-long"></i>
     DIRECTORY
   </a>
-  <div style="display: flex; gap: 16px;">
+  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
     <button onclick="document.getElementById('new-folder-modal').style.display='flex'" class="btn btn-secondary" style="border-radius: 12px; font-weight: 800;">
       <i class="fa-solid fa-folder-plus"></i> NEW CATEGORY
     </button>
     <a href="/invoices/new?receiver_id=<%= company.id %>" class="btn btn-primary" style="border-radius: 12px; font-weight: 800;">
       <i class="fa-solid fa-plus-circle"></i> NEW INVOICE
+    </a>
+    <a href="/companies/<%= company.uuid_hash %>/monthly-summary" class="btn btn-outline" style="border-radius: 12px; font-weight: 800;">
+      <i class="fa-solid fa-calendar-days"></i> MONTHLY SUMMARY
     </a>
   </div>
 </div>

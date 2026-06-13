@@ -1,0 +1,77 @@
+<%- include('header', { pageTitle: 'Monthly Summary - ' + company.name, currentPage: 'companies' }) %>
+
+<div style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; gap:16px; flex-wrap: wrap;">
+  <a href="/companies/<%= company.uuid_hash %>" class="btn btn-ghost" style="border-radius: 12px; font-weight: 800;">
+    <i class="fa-solid fa-arrow-left-long"></i>
+    BACK TO COMPANY
+  </a>
+  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+    <a href="/companies/<%= company.uuid_hash %>" class="btn btn-secondary" style="border-radius: 12px; font-weight: 800;">
+      <i class="fa-solid fa-building"></i> COMPANY LEDGER
+    </a>
+    <a href="/invoices/new?receiver_id=<%= company.id %>" class="btn btn-primary" style="border-radius: 12px; font-weight: 800;">
+      <i class="fa-solid fa-plus-circle"></i> NEW INVOICE
+    </a>
+  </div>
+</div>
+
+<div class="glass-panel" style="padding: 32px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; gap: 16px; flex-wrap: wrap;">
+    <div>
+      <div style="font-size: 1.8rem; font-weight: 900; margin-bottom: 8px;">Monthly Summary</div>
+      <div style="color: var(--ink-muted);">Only company-billed invoices are included. Each row represents one monthly aggregate.</div>
+    </div>
+    <div style="font-size: 0.9rem; color: var(--ink-muted);">Company: <strong><%= company.name %></strong></div>
+  </div>
+
+  <% if (monthlySummaries.length === 0) { %>
+    <div style="padding: 80px 0; text-align: center; color: var(--ink-muted);">
+      <i class="fa-solid fa-circle-info" style="font-size: 3rem; margin-bottom: 16px;"></i>
+      <div style="font-size: 1.1rem; font-weight: 900;">No monthly summaries available.</div>
+      <p style="margin-top: 12px; max-width: 520px; margin-left: auto; margin-right: auto;">Create invoices for this company to generate monthly report summaries. Only invoices billed under this company are included.</p>
+    </div>
+  <% } else { %>
+    <div style="overflow-x:auto;">
+      <table class="data-table" style="min-width: 960px;">
+        <thead>
+          <tr>
+            <th>ISSUE DATE</th>
+            <th>INVOICE</th>
+            <th>TOTAL CARS</th>
+            <th>CAR TYPES</th>
+            <th>TOTAL VEHICLE RATE</th>
+            <th>TOTAL DEMURRAGE RATE</th>
+            <th>TOTAL ADDITIONAL CHARGE</th>
+            <th>TOTAL BILL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% monthlySummaries.forEach(summary => { %>
+            <tr>
+              <td><%= summary.issue_label %></td>
+              <td><%= summary.invoice_number %></td>
+              <td><%= summary.total_cars %></td>
+              <td style="white-space: normal;">
+                <% if (summary.vehicle_counts && summary.vehicle_counts.length > 0) { %>
+                  <ul style="margin: 0; padding-left: 18px; color: var(--ink-dim);">
+                    <% summary.vehicle_counts.forEach(item => { %>
+                      <li style="font-size: 0.93rem; margin-bottom: 2px;"><%= item.count %> × <%= item.type %></li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <span>N/A</span>
+                <% } %>
+              </td>
+              <td><%= FinanceService.formatCurrency(summary.total_vehicle_rate) %></td>
+              <td><%= FinanceService.formatCurrency(summary.total_demurrage_rate) %></td>
+              <td><%= FinanceService.formatCurrency(summary.total_additional_charge) %></td>
+              <td style="font-weight: 900;"><%= FinanceService.formatCurrency(summary.total_bill) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('footer') %>

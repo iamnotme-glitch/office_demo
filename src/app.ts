@@ -3,9 +3,7 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { invoiceRouter } from './routes/invoiceRoutes.js';
-import { authRouter } from './routes/authRoutes.js';
 import { adminRouter } from './routes/adminRoutes.js';
-import { authenticate } from './middleware/auth.js';
 
 const app = express();
 
@@ -16,8 +14,12 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.use('/', authRouter);
-app.use('/', authenticate, invoiceRouter);
-app.use('/', authenticate, adminRouter);
+app.use((req, res, next) => {
+  res.locals.user = null;
+  next();
+});
+
+app.use('/', invoiceRouter);
+app.use('/', adminRouter);
 
 export default app;
